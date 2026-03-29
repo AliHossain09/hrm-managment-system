@@ -7,6 +7,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
+@include('toaster')
 <div class="app-shell">
     <aside class="side-nav">
         <div class="brand">adency<span>/4</span></div>
@@ -27,13 +28,6 @@
                 <button class="btn-ghost" type="submit">Logout</button>
             </form>
         </header>
-
-        @if (session('success'))
-            <div class="flash-message flash-success">{{ session('success') }}</div>
-        @endif
-        @if (session('error'))
-            <div class="flash-message flash-error">{{ session('error') }}</div>
-        @endif
 
         <h1 class="dashboard-title">Dashboard (Admin)</h1>
 
@@ -67,4 +61,3 @@
 </div>
 </body>
 </html>
-
