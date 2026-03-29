@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Hash;
 class AuthSetupSeeder extends Seeder
 {
     /**
-     * Seed authentication essentials: roles + master admin/admin users.
+     * Seed authentication essentials: roles + default users.
      */
     public function run(): void
     {
@@ -51,8 +51,32 @@ class AuthSetupSeeder extends Seeder
             ]
         );
 
+        $accountant = User::query()->updateOrCreate(
+            ['email' => 'accountant@miutx.com'],
+            [
+                'name' => 'Accountant',
+                'password' => Hash::make('password'),
+                'type' => 'accountant',
+                'is_active' => 1,
+                'email_verified_at' => now(),
+            ]
+        );
+
+        $employee = User::query()->updateOrCreate(
+            ['email' => 'employee@miutx.com'],
+            [
+                'name' => 'Employee',
+                'password' => Hash::make('password'),
+                'type' => 'employee',
+                'is_active' => 1,
+                'email_verified_at' => now(),
+            ]
+        );
+
         $this->attachRole($masterAdmin, 'master admin');
         $this->attachRole($admin, 'admin');
+        $this->attachRole($accountant, 'accountant');
+        $this->attachRole($employee, 'employee');
     }
 
     private function attachRole(User $user, string $roleName): void
