@@ -274,6 +274,21 @@ body {
     color: white;
 }
 
+.side-section-title {
+    color: #7fa5ff;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    margin: 0.8rem 0 0.4rem;
+    padding-left: 0.3rem;
+}
+
+.side-sub {
+    padding-left: 1.3rem;
+    font-size: 0.95rem;
+}
+
 .main-content {
     padding: 1.2rem 1.5rem 1.5rem;
 }
@@ -377,6 +392,157 @@ body {
     gap: 1rem;
 }
 
+.staff-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.user-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+}
+
+.user-card {
+    background: white;
+    border-radius: 1rem;
+    padding: 1.1rem;
+    text-align: center;
+    border: 1px solid #edf1fb;
+}
+
+.user-card h3 {
+    margin: 0.75rem 0 0.45rem;
+    font-size: 1.7rem;
+    color: #18325f;
+}
+
+.user-card p {
+    margin: 0.35rem 0;
+    color: #7388b0;
+    font-size: 0.92rem;
+}
+
+.avatar-circle {
+    width: 70px;
+    height: 70px;
+    border-radius: 999px;
+    margin: 0 auto;
+    display: grid;
+    place-items: center;
+    background: #c7d4ef;
+    color: #1b3e78;
+    font-weight: 800;
+    font-size: 1.2rem;
+}
+
+.role-pill {
+    display: inline-block;
+    background: #1f61f3;
+    color: white;
+    border-radius: 999px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 27, 51, 0.35);
+    backdrop-filter: blur(2px);
+    z-index: 70;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+}
+
+.modal-card {
+    width: min(900px, 100%);
+    background: #ffffff;
+    border-radius: 1.2rem;
+    padding: 1.2rem;
+    box-shadow: 0 28px 48px rgba(8, 36, 86, 0.24);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.85rem;
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: #173260;
+}
+
+.modal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+}
+
+.modal-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    font-weight: 600;
+    color: #1f355f;
+}
+
+.form-input {
+    width: 100%;
+    border-radius: 0.7rem;
+    border: 1px solid #b8c8e6;
+    padding: 0.72rem 0.85rem;
+    color: #113467;
+    background: #f9fbff;
+    outline: none;
+}
+
+.form-input:focus {
+    border-color: #4077ef;
+}
+
+.modal-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    grid-column: span 2;
+}
+
+.role-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+}
+
+.role-card h3 {
+    margin-bottom: 0.6rem;
+}
+
+.permission-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.permission-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.55rem;
+    background: #eff4ff;
+    font-size: 0.86rem;
+    color: #14356b;
+}
+
 @media (max-width: 1024px) {
     .grid-two {
         grid-template-columns: 1fr;
@@ -408,5 +574,13 @@ body {
 
     .login-title {
         font-size: 1.2rem;
+    }
+
+    .modal-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-actions {
+        grid-column: span 1;
     }
 }

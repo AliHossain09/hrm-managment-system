@@ -1,6 +1,6 @@
 import axios from 'axios';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, NavLink, Route, Routes } from 'react-router-dom';
 
 const TOKEN_KEY = 'miutx_api_token';
 
@@ -16,11 +16,22 @@ function normalizeRoleGroup(value) {
 }
 
 function extractMessage(error) {
-    return (
-        error?.response?.data?.message ||
-        error?.message ||
-        'Something went wrong.'
-    );
+    return error?.response?.data?.message || error?.message || 'Something went wrong.';
+}
+
+function initials(name) {
+    if (!name) return 'U';
+    return name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((p) => p[0]?.toUpperCase())
+        .join('');
+}
+
+function formatDateTime(value) {
+    if (!value) return 'Never logged in';
+    return value;
 }
 
 function Toast({ toast, onClose }) {
@@ -55,9 +66,7 @@ function LoginPage({ onLogin, isSubmitting }) {
 
             <section className="login-panel">
                 <h1 className="login-title">Miutx Portal Access</h1>
-                <p className="login-subtitle">
-                    Secure login for Master Admin, Accountant and Employee.
-                </p>
+                <p className="login-subtitle">Secure login for Master Admin, Accountant and Employee.</p>
 
                 <form className="login-form" onSubmit={submit}>
                     <input
@@ -87,20 +96,48 @@ function LoginPage({ onLogin, isSubmitting }) {
     );
 }
 
-function DashboardLayout({ user, title, navItems, children, onLogout }) {
+function SideNavAdmin() {
+    return (
+        <nav>
+            <NavLink to="/admin/dashboard" className={({ isActive }) => `side-item ${isActive ? 'active' : ''}`}>
+                Dashboard
+            </NavLink>
+
+            <div className="side-section-title">Staff</div>
+            <NavLink to="/admin/staff/users" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
+                User
+            </NavLink>
+            <NavLink to="/admin/staff/roles" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
+                Role & Permission
+            </NavLink>
+
+            <a className="side-item" href="#">Product & Service</a>
+            <a className="side-item" href="#">HRM</a>
+            <a className="side-item" href="#">Settings</a>
+        </nav>
+    );
+}
+
+function SideNavEmployee() {
+    return (
+        <nav>
+            <a className="side-item active" href="#">Dashboard</a>
+            <a className="side-item" href="#">Pay Slip</a>
+            <a className="side-item" href="#">Leave List</a>
+            <a className="side-item" href="#">Attendance</a>
+            <a className="side-item" href="#">My Library</a>
+        </nav>
+    );
+}
+
+function AppShell({ user, onLogout, children, admin = false }) {
     return (
         <div className="app-shell">
             <aside className="side-nav">
                 <div className="brand">
                     adency<span>/4</span>
                 </div>
-                <nav>
-                    {navItems.map((item) => (
-                        <a key={item} className="side-item" href="#">
-                            {item}
-                        </a>
-                    ))}
-                </nav>
+                {admin ? <SideNavAdmin /> : <SideNavEmployee />}
             </aside>
 
             <main className="main-content">
@@ -110,17 +147,6 @@ function DashboardLayout({ user, title, navItems, children, onLogout }) {
                         Logout
                     </button>
                 </header>
-
-                <h1 className="dashboard-title">{title}</h1>
-
-                <section className="notice-row">
-                    <div className="badge-orange">Notice Board</div>
-                    <div className="notice-text">
-                        Welcome back {user?.name} ({normalizeRoleGroup(user?.role_group)})
-                    </div>
-                    <button className="btn-primary small">View All</button>
-                </section>
-
                 {children}
             </main>
         </div>
@@ -129,12 +155,13 @@ function DashboardLayout({ user, title, navItems, children, onLogout }) {
 
 function AdminDashboard({ user, onLogout }) {
     return (
-        <DashboardLayout
-            user={user}
-            title="Dashboard (Admin)"
-            navItems={['Dashboard', 'Staff', 'Product & Service', 'HRM', 'Settings']}
-            onLogout={onLogout}
-        >
+        <AppShell user={user} onLogout={onLogout} admin>
+            <h1 className="dashboard-title">Dashboard (Admin)</h1>
+            <section className="notice-row">
+                <div className="badge-orange">Notice Board</div>
+                <div className="notice-text">Welcome back {user?.name}</div>
+                <button className="btn-primary small">View All</button>
+            </section>
             <section className="grid-two">
                 <article className="panel">
                     <h3>Attendance Calendar</h3>
@@ -153,18 +180,286 @@ function AdminDashboard({ user, onLogout }) {
                     </div>
                 </article>
             </section>
-        </DashboardLayout>
+        </AppShell>
+    );
+}
+
+function CreateUserModal({ open, onClose, onCreate, roles, busy }) {
+    const [form, setForm] = useState({
+        name: '',
+        email: '',
+        role_name: 'employee',
+        password: '',
+    });
+
+    useEffect(() => {
+        if (roles.length > 0 && !roles.find((r) => r.name === form.role_name)) {
+            setForm((prev) => ({ ...prev, role_name: roles[0].name }));
+        }
+    }, [roles]);
+
+    if (!open) return null;
+
+    const submit = async (e) => {
+        e.preventDefault();
+        await onCreate(form);
+        setForm({ name: '', email: '', role_name: roles[0]?.name || 'employee', password: '' });
+    };
+
+    return (
+        <div className="modal-overlay">
+            <div className="modal-card">
+                <div className="modal-header">
+                    <h2>Create New User</h2>
+                    <button type="button" className="btn-ghost" onClick={onClose}>Close</button>
+                </div>
+
+                <form className="modal-grid" onSubmit={submit}>
+                    <label>
+                        Name
+                        <input
+                            className="form-input"
+                            value={form.name}
+                            onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                            placeholder="Enter User Name"
+                            required
+                        />
+                    </label>
+
+                    <label>
+                        Email
+                        <input
+                            className="form-input"
+                            type="email"
+                            value={form.email}
+                            onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                            placeholder="Enter User Email"
+                            required
+                        />
+                    </label>
+
+                    <label>
+                        User Role
+                        <select
+                            className="form-input"
+                            value={form.role_name}
+                            onChange={(e) => setForm((p) => ({ ...p, role_name: e.target.value }))}
+                            required
+                        >
+                            {roles.map((role) => (
+                                <option key={role.id} value={role.name}>{role.name}</option>
+                            ))}
+                        </select>
+                    </label>
+
+                    <label>
+                        Password
+                        <input
+                            className="form-input"
+                            type="password"
+                            value={form.password}
+                            onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                            placeholder="Enter User Password"
+                            required
+                        />
+                    </label>
+
+                    <div className="modal-actions">
+                        <button className="btn-primary small" type="submit" disabled={busy}>
+                            {busy ? 'Creating...' : 'Create'}
+                        </button>
+                        <button className="btn-ghost" type="button" onClick={onClose}>Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+function StaffUsersPage({ user, onLogout, headers, showToast }) {
+    const [users, setUsers] = useState([]);
+    const [roles, setRoles] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [creating, setCreating] = useState(false);
+
+    const loadUsers = async () => {
+        const [{ data: usersData }, { data: rolesData }] = await Promise.all([
+            api.get('/staff/users', { headers }),
+            api.get('/staff/roles', { headers }),
+        ]);
+
+        setUsers(usersData?.data?.users || []);
+        setRoles(rolesData?.data?.roles || []);
+    };
+
+    useEffect(() => {
+        const run = async () => {
+            try {
+                await loadUsers();
+            } catch (error) {
+                showToast('error', extractMessage(error));
+            } finally {
+                setLoading(false);
+            }
+        };
+        run();
+    }, []);
+
+    const createUser = async (payload) => {
+        setCreating(true);
+        try {
+            await api.post('/staff/users', payload, { headers });
+            await loadUsers();
+            setModalOpen(false);
+            showToast('success', 'User created successfully.');
+        } catch (error) {
+            showToast('error', extractMessage(error));
+        } finally {
+            setCreating(false);
+        }
+    };
+
+    return (
+        <AppShell user={user} onLogout={onLogout} admin>
+            <div className="staff-header">
+                <h1 className="dashboard-title">Manage Users</h1>
+                <button className="btn-primary" type="button" onClick={() => setModalOpen(true)}>
+                    + Create
+                </button>
+            </div>
+
+            {loading ? (
+                <div className="panel">Loading users...</div>
+            ) : (
+                <section className="user-grid">
+                    {users.map((item) => (
+                        <article key={item.id} className="user-card">
+                            <div className="avatar-circle">{initials(item.name)}</div>
+                            <h3>{item.name}</h3>
+                            <span className="role-pill">{item.role || 'N/A'}</span>
+                            <p>{item.email}</p>
+                            <p>{formatDateTime(item.last_login_at)}</p>
+                        </article>
+                    ))}
+                </section>
+            )}
+
+            <CreateUserModal
+                open={modalOpen}
+                onClose={() => setModalOpen(false)}
+                onCreate={createUser}
+                roles={roles}
+                busy={creating}
+            />
+        </AppShell>
+    );
+}
+
+function RoleCard({ role, permissions, onSave, busy }) {
+    const [selected, setSelected] = useState(role.permissions || []);
+
+    useEffect(() => {
+        setSelected(role.permissions || []);
+    }, [role.id, role.permissions]);
+
+    const toggle = (name) => {
+        setSelected((prev) =>
+            prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name],
+        );
+    };
+
+    return (
+        <article className="panel role-card">
+            <h3>{role.name}</h3>
+            <div className="permission-list">
+                {permissions.map((perm) => (
+                    <label key={perm.id} className="permission-item">
+                        <input
+                            type="checkbox"
+                            checked={selected.includes(perm.name)}
+                            onChange={() => toggle(perm.name)}
+                        />
+                        <span>{perm.name}</span>
+                    </label>
+                ))}
+            </div>
+            <button className="btn-primary small" type="button" onClick={() => onSave(role.id, selected)} disabled={busy}>
+                {busy ? 'Saving...' : 'Save Permissions'}
+            </button>
+        </article>
+    );
+}
+
+function StaffRolesPage({ user, onLogout, headers, showToast }) {
+    const [roles, setRoles] = useState([]);
+    const [permissions, setPermissions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [savingRoleId, setSavingRoleId] = useState(null);
+
+    const load = async () => {
+        const { data } = await api.get('/staff/roles', { headers });
+        setRoles(data?.data?.roles || []);
+        setPermissions(data?.data?.permissions || []);
+    };
+
+    useEffect(() => {
+        const run = async () => {
+            try {
+                await load();
+            } catch (error) {
+                showToast('error', extractMessage(error));
+            } finally {
+                setLoading(false);
+            }
+        };
+        run();
+    }, []);
+
+    const save = async (roleId, selectedPermissions) => {
+        setSavingRoleId(roleId);
+        try {
+            await api.put(`/staff/roles/${roleId}`, { permissions: selectedPermissions }, { headers });
+            await load();
+            showToast('success', 'Role permissions updated.');
+        } catch (error) {
+            showToast('error', extractMessage(error));
+        } finally {
+            setSavingRoleId(null);
+        }
+    };
+
+    return (
+        <AppShell user={user} onLogout={onLogout} admin>
+            <h1 className="dashboard-title">Role & Permissions</h1>
+            {loading ? (
+                <div className="panel">Loading roles...</div>
+            ) : (
+                <section className="role-grid">
+                    {roles.map((role) => (
+                        <RoleCard
+                            key={role.id}
+                            role={role}
+                            permissions={permissions}
+                            onSave={save}
+                            busy={savingRoleId === role.id}
+                        />
+                    ))}
+                </section>
+            )}
+        </AppShell>
     );
 }
 
 function EmployeeDashboard({ user, onLogout }) {
     return (
-        <DashboardLayout
-            user={user}
-            title="Dashboard (Employee)"
-            navItems={['Dashboard', 'Pay Slip', 'Leave List', 'Attendance', 'My Library']}
-            onLogout={onLogout}
-        >
+        <AppShell user={user} onLogout={onLogout}>
+            <h1 className="dashboard-title">Dashboard (Employee)</h1>
+            <section className="notice-row">
+                <div className="badge-orange">Notice Board</div>
+                <div className="notice-text">Hello {user?.name}</div>
+                <button className="btn-primary small">View All</button>
+            </section>
             <section className="grid-two">
                 <article className="panel">
                     <h3>Attendance Calendar</h3>
@@ -183,7 +478,7 @@ function EmployeeDashboard({ user, onLogout }) {
                     </div>
                 </article>
             </section>
-        </DashboardLayout>
+        </AppShell>
     );
 }
 
@@ -193,7 +488,7 @@ function ProtectedRoute({ user, role, children }) {
     return children;
 }
 
-export default function App() {
+export default function ReactApp() {
     const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
     const [user, setUser] = useState(null);
     const [booting, setBooting] = useState(true);
@@ -206,10 +501,9 @@ export default function App() {
         return () => clearTimeout(id);
     }, [toast]);
 
-    const authHeaders = useMemo(
-        () => (token ? { Authorization: `Bearer ${token}` } : {}),
-        [token],
-    );
+    const authHeaders = useMemo(() => (token ? { Authorization: `Bearer ${token}` } : {}), [token]);
+
+    const showToast = (type, message) => setToast({ type, message });
 
     useEffect(() => {
         const bootstrap = async () => {
@@ -246,9 +540,9 @@ export default function App() {
             localStorage.setItem(TOKEN_KEY, nextToken);
             setToken(nextToken);
             setUser(nextUser);
-            setToast({ type: 'success', message: data?.message || 'Login successful.' });
+            showToast('success', data?.message || 'Login successful.');
         } catch (error) {
-            setToast({ type: 'error', message: extractMessage(error) });
+            showToast('error', extractMessage(error));
         } finally {
             setSubmitting(false);
         }
@@ -260,19 +554,16 @@ export default function App() {
                 await api.post('/auth/logout', {}, { headers: authHeaders });
             }
         } catch {
-            // logout should clear local state even if server fails
+            // clear local state regardless
         } finally {
             localStorage.removeItem(TOKEN_KEY);
             setToken(null);
             setUser(null);
-            setToast({ type: 'success', message: 'Logged out successfully.' });
+            showToast('success', 'Logged out successfully.');
         }
     };
 
-    const defaultPath =
-        normalizeRoleGroup(user?.role_group) === 'employee'
-            ? '/employee/dashboard'
-            : '/admin/dashboard';
+    const defaultPath = normalizeRoleGroup(user?.role_group) === 'employee' ? '/employee/dashboard' : '/admin/dashboard';
 
     if (booting) {
         return <div style={{ padding: '2rem' }}>Loading...</div>;
@@ -285,13 +576,10 @@ export default function App() {
                 <Route
                     path="/login"
                     element={
-                        user ? (
-                            <Navigate to={defaultPath} replace />
-                        ) : (
-                            <LoginPage onLogin={login} isSubmitting={submitting} />
-                        )
+                        user ? <Navigate to={defaultPath} replace /> : <LoginPage onLogin={login} isSubmitting={submitting} />
                     }
                 />
+
                 <Route
                     path="/admin/dashboard"
                     element={
@@ -300,6 +588,25 @@ export default function App() {
                         </ProtectedRoute>
                     }
                 />
+
+                <Route
+                    path="/admin/staff/users"
+                    element={
+                        <ProtectedRoute user={user} role="admin">
+                            <StaffUsersPage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin/staff/roles"
+                    element={
+                        <ProtectedRoute user={user} role="admin">
+                            <StaffRolesPage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} />
+                        </ProtectedRoute>
+                    }
+                />
+
                 <Route
                     path="/employee/dashboard"
                     element={
@@ -308,19 +615,10 @@ export default function App() {
                         </ProtectedRoute>
                     }
                 />
-                <Route
-                    path="/"
-                    element={
-                        user ? (
-                            <Navigate to={defaultPath} replace />
-                        ) : (
-                            <Navigate to="/login" replace />
-                        )
-                    }
-                />
+
+                <Route path="/" element={user ? <Navigate to={defaultPath} replace /> : <Navigate to="/login" replace />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </>
     );
 }
-

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -26,6 +27,22 @@ class AuthSetupSeeder extends Seeder
             Role::query()->updateOrCreate(
                 ['name' => $roleName, 'guard_name' => 'web', 'created_by' => 0],
                 ['updated_at' => now(), 'created_at' => now()]
+            );
+        }
+
+        $permissions = [
+            'user.view',
+            'user.create',
+            'user.update',
+            'user.delete',
+            'permission.view',
+            'permission.update',
+        ];
+
+        foreach ($permissions as $permissionName) {
+            Permission::query()->updateOrCreate(
+                ['name' => $permissionName],
+                ['guard_name' => 'web']
             );
         }
 
@@ -77,6 +94,11 @@ class AuthSetupSeeder extends Seeder
         $this->attachRole($admin, 'admin');
         $this->attachRole($accountant, 'accountant');
         $this->attachRole($employee, 'employee');
+
+        $this->syncRolePermissions('master admin', $permissions);
+        $this->syncRolePermissions('admin', $permissions);
+        $this->syncRolePermissions('accountant', ['user.view', 'permission.view']);
+        $this->syncRolePermissions('employee', []);
     }
 
     private function attachRole(User $user, string $roleName): void
@@ -92,5 +114,16 @@ class AuthSetupSeeder extends Seeder
             'model_type' => User::class,
             'model_id' => $user->id,
         ], []);
+    }
+
+    private function syncRolePermissions(string $roleName, array $permissionNames): void
+    {
+        $role = Role::query()->where('name', $roleName)->first();
+        if (! $role) {
+            return;
+        }
+
+        $permissionIds = Permission::query()->whereIn('name', $permissionNames)->pluck('id')->all();
+        $role->permissions()->sync($permissionIds);
     }
 }
