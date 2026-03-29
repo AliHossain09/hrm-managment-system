@@ -16,6 +16,8 @@ Route::prefix('v1')->group(function (): void {
         Route::middleware('role.group:admin')->group(function (): void {
             Route::get('/staff/users', [StaffController::class, 'users']);
             Route::post('/staff/users', [StaffController::class, 'storeUser']);
+            Route::put('/staff/users/{user}', [StaffController::class, 'updateUser']);
+            Route::delete('/staff/users/{user}', [StaffController::class, 'deleteUser']);
             Route::get('/staff/roles', [StaffController::class, 'roles']);
             Route::put('/staff/roles/{role}', [StaffController::class, 'updateRolePermissions']);
         });

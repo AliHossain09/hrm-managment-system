@@ -16,6 +16,14 @@ function normalizeRoleGroup(value) {
 }
 
 function extractMessage(error) {
+    const errors = error?.response?.data?.errors;
+    if (errors && typeof errors === 'object') {
+        const firstKey = Object.keys(errors)[0];
+        if (firstKey && Array.isArray(errors[firstKey])) {
+            return errors[firstKey][0];
+        }
+    }
+
     return error?.response?.data?.message || error?.message || 'Something went wrong.';
 }
 
@@ -184,33 +192,75 @@ function AdminDashboard({ user, onLogout }) {
     );
 }
 
-function CreateUserModal({ open, onClose, onCreate, roles, busy }) {
+function UserModal({ open, onClose, onSubmit, roles, busy, mode, initialUser }) {
     const [form, setForm] = useState({
+        id: null,
         name: '',
         email: '',
         role_name: 'employee',
         password: '',
+        avatar: null,
+        avatar_preview: null,
     });
 
     useEffect(() => {
-        if (roles.length > 0 && !roles.find((r) => r.name === form.role_name)) {
-            setForm((prev) => ({ ...prev, role_name: roles[0].name }));
+        if (!open) return;
+
+        const fallbackRole = roles[0]?.name || 'employee';
+
+        if (mode === 'edit' && initialUser) {
+            setForm({
+                id: initialUser.id,
+                name: initialUser.name || '',
+                email: initialUser.email || '',
+                role_name: initialUser.role || fallbackRole,
+                password: '',
+                avatar: null,
+                avatar_preview: initialUser.avatar_url || null,
+            });
+            return;
         }
-    }, [roles]);
+
+        setForm({
+            id: null,
+            name: '',
+            email: '',
+            role_name: fallbackRole,
+            password: '',
+            avatar: null,
+            avatar_preview: null,
+        });
+    }, [open, mode, initialUser, roles]);
 
     if (!open) return null;
 
     const submit = async (e) => {
         e.preventDefault();
-        await onCreate(form);
-        setForm({ name: '', email: '', role_name: roles[0]?.name || 'employee', password: '' });
+
+        const payload = new FormData();
+        payload.append('name', form.name);
+        payload.append('email', form.email);
+        payload.append('role_name', form.role_name);
+
+        if (form.password) {
+            payload.append('password', form.password);
+        }
+
+        if (form.avatar) {
+            payload.append('avatar', form.avatar);
+        }
+
+        await onSubmit({ ...form, payload });
     };
+
+    const title = mode === 'edit' ? 'Edit User' : 'Create New User';
+    const submitLabel = mode === 'edit' ? 'Update' : 'Create';
 
     return (
         <div className="modal-overlay">
             <div className="modal-card">
                 <div className="modal-header">
-                    <h2>Create New User</h2>
+                    <h2>{title}</h2>
                     <button type="button" className="btn-ghost" onClick={onClose}>Close</button>
                 </div>
 
@@ -253,20 +303,45 @@ function CreateUserModal({ open, onClose, onCreate, roles, busy }) {
                     </label>
 
                     <label>
-                        Password
+                        Password {mode === 'edit' ? '(optional)' : ''}
                         <input
                             className="form-input"
                             type="password"
                             value={form.password}
                             onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
                             placeholder="Enter User Password"
-                            required
+                            required={mode !== 'edit'}
                         />
                     </label>
 
+                    <label>
+                        Avatar Image
+                        <input
+                            className="form-input"
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                                const file = e.target.files?.[0] || null;
+                                setForm((p) => ({
+                                    ...p,
+                                    avatar: file,
+                                    avatar_preview: file ? URL.createObjectURL(file) : p.avatar_preview,
+                                }));
+                            }}
+                        />
+                    </label>
+
+                    <div className="avatar-preview-wrap">
+                        {form.avatar_preview ? (
+                            <img src={form.avatar_preview} alt="Avatar preview" className="avatar-preview" />
+                        ) : (
+                            <div className="avatar-circle avatar-preview">{initials(form.name)}</div>
+                        )}
+                    </div>
+
                     <div className="modal-actions">
                         <button className="btn-primary small" type="submit" disabled={busy}>
-                            {busy ? 'Creating...' : 'Create'}
+                            {busy ? (mode === 'edit' ? 'Updating...' : 'Creating...') : submitLabel}
                         </button>
                         <button className="btn-ghost" type="button" onClick={onClose}>Cancel</button>
                     </div>
@@ -281,7 +356,9 @@ function StaffUsersPage({ user, onLogout, headers, showToast }) {
     const [roles, setRoles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
-    const [creating, setCreating] = useState(false);
+    const [modalMode, setModalMode] = useState('create');
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [saving, setSaving] = useState(false);
 
     const loadUsers = async () => {
         const [{ data: usersData }, { data: rolesData }] = await Promise.all([
@@ -306,17 +383,64 @@ function StaffUsersPage({ user, onLogout, headers, showToast }) {
         run();
     }, []);
 
-    const createUser = async (payload) => {
-        setCreating(true);
+    const openCreate = () => {
+        setModalMode('create');
+        setSelectedUser(null);
+        setModalOpen(true);
+    };
+
+    const openEdit = (targetUser) => {
+        setModalMode('edit');
+        setSelectedUser(targetUser);
+        setModalOpen(true);
+    };
+
+    const submitUser = async ({ id, payload }) => {
+        setSaving(true);
         try {
-            await api.post('/staff/users', payload, { headers });
+            if (modalMode === 'edit' && id) {
+                payload.append('_method', 'PUT');
+                await api.post(`/staff/users/${id}`, payload, {
+                    headers: {
+                        ...headers,
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
+                showToast('success', 'User updated successfully.');
+            } else {
+                await api.post('/staff/users', payload, {
+                    headers: {
+                        ...headers,
+                        'Content-Type': 'multipart/form-data',
+                    },
+                });
+                showToast('success', 'User created successfully.');
+            }
+
             await loadUsers();
             setModalOpen(false);
-            showToast('success', 'User created successfully.');
         } catch (error) {
             showToast('error', extractMessage(error));
         } finally {
-            setCreating(false);
+            setSaving(false);
+        }
+    };
+
+    const deleteUser = async (targetUser) => {
+        if (Number(targetUser.id) === Number(user?.id)) {
+            showToast('error', 'You cannot delete your own account.');
+            return;
+        }
+
+        const ok = window.confirm(`Delete user ${targetUser.name}?`);
+        if (!ok) return;
+
+        try {
+            await api.delete(`/staff/users/${targetUser.id}`, { headers });
+            await loadUsers();
+            showToast('success', 'User deleted successfully.');
+        } catch (error) {
+            showToast('error', extractMessage(error));
         }
     };
 
@@ -324,7 +448,7 @@ function StaffUsersPage({ user, onLogout, headers, showToast }) {
         <AppShell user={user} onLogout={onLogout} admin>
             <div className="staff-header">
                 <h1 className="dashboard-title">Manage Users</h1>
-                <button className="btn-primary" type="button" onClick={() => setModalOpen(true)}>
+                <button className="btn-primary" type="button" onClick={openCreate}>
                     + Create
                 </button>
             </div>
@@ -335,22 +459,37 @@ function StaffUsersPage({ user, onLogout, headers, showToast }) {
                 <section className="user-grid">
                     {users.map((item) => (
                         <article key={item.id} className="user-card">
-                            <div className="avatar-circle">{initials(item.name)}</div>
+                            {item.avatar_url ? (
+                                <img src={item.avatar_url} alt={item.name} className="user-avatar-image" />
+                            ) : (
+                                <div className="avatar-circle">{initials(item.name)}</div>
+                            )}
                             <h3>{item.name}</h3>
                             <span className="role-pill">{item.role || 'N/A'}</span>
                             <p>{item.email}</p>
                             <p>{formatDateTime(item.last_login_at)}</p>
+
+                            <div className="user-card-actions">
+                                <button className="btn-ghost small" type="button" onClick={() => openEdit(item)}>
+                                    Edit
+                                </button>
+                                <button className="btn-danger small" type="button" onClick={() => deleteUser(item)}>
+                                    Delete
+                                </button>
+                            </div>
                         </article>
                     ))}
                 </section>
             )}
 
-            <CreateUserModal
+            <UserModal
                 open={modalOpen}
                 onClose={() => setModalOpen(false)}
-                onCreate={createUser}
+                onSubmit={submitUser}
                 roles={roles}
-                busy={creating}
+                busy={saving}
+                mode={modalMode}
+                initialUser={selectedUser}
             />
         </AppShell>
     );

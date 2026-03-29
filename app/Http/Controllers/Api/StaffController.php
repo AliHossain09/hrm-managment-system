@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreStaffUserRequest;
 use App\Http\Requests\Api\UpdateRolePermissionsRequest;
+use App\Http\Requests\Api\UpdateStaffUserRequest;
 use App\Models\Role;
+use App\Models\User;
 use App\Services\StaffService;
 use App\Traits\RespondsWithMessages;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class StaffController extends Controller
 {
@@ -25,13 +28,25 @@ class StaffController extends Controller
     {
         $user = $staffService->createUser($request->validated());
 
-        return $this->successResponse([
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'role' => $user->roles->first()?->name ?? $user->type,
-            'last_login_at' => optional($user->last_login_at)->format('Y-m-d H:i:s'),
-        ], 'User created successfully.', 201);
+        return $this->successResponse($staffService->presentUser($user), 'User created successfully.', 201);
+    }
+
+    public function updateUser(UpdateStaffUserRequest $request, User $user, StaffService $staffService): JsonResponse
+    {
+        $updated = $staffService->updateUser($user, $request->validated());
+
+        return $this->successResponse($staffService->presentUser($updated), 'User updated successfully.');
+    }
+
+    public function deleteUser(Request $request, User $user, StaffService $staffService): JsonResponse
+    {
+        if ((int) $request->user()->id === (int) $user->id) {
+            return $this->errorResponse('You cannot delete your own account.', 422);
+        }
+
+        $staffService->deleteUser($user);
+
+        return $this->successResponse(null, 'User deleted successfully.');
     }
 
     public function roles(StaffService $staffService): JsonResponse
