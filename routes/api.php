@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\StaffController;
 use Illuminate\Support\Facades\Route;
 
@@ -12,6 +13,11 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/dashboard', [DashboardController::class, 'index']);
+
+        Route::get('/events', [EventController::class, 'index']);
+        Route::post('/events', [EventController::class, 'store']);
+        Route::put('/events/{event}', [EventController::class, 'update']);
+        Route::delete('/events/{event}', [EventController::class, 'destroy']);
 
         Route::middleware('role.group:admin')->group(function (): void {
             Route::get('/staff/users', [StaffController::class, 'users']);

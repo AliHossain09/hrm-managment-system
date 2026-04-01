@@ -37,6 +37,10 @@ class AuthSetupSeeder extends Seeder
             'user.delete',
             'permission.view',
             'permission.update',
+            'event.view',
+            'event.create',
+            'event.update',
+            'event.delete',
         ];
 
         foreach ($permissions as $permissionName) {
@@ -96,9 +100,9 @@ class AuthSetupSeeder extends Seeder
         $this->attachRole($employee, 'employee');
 
         $this->syncRolePermissions('master admin', $permissions);
-        $this->syncRolePermissions('admin', $permissions);
-        $this->syncRolePermissions('accountant', ['user.view', 'permission.view']);
-        $this->syncRolePermissions('employee', []);
+        $this->syncRolePermissions('admin', ['user.view', 'user.create', 'user.update', 'user.delete', 'permission.view', 'event.view']);
+        $this->syncRolePermissions('accountant', ['user.view', 'permission.view', 'event.view']);
+        $this->syncRolePermissions('employee', ['event.view']);
     }
 
     private function attachRole(User $user, string $roleName): void

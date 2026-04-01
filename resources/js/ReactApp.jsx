@@ -1,6 +1,11 @@
 import axios from 'axios';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Navigate, NavLink, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import AppShell from './components/layout/AppShell.jsx';
+import AdminDashboard from './components/pages/AdminDashboard.jsx';
+import EmployeeDashboard from './components/pages/EmployeeDashboard.jsx';
+import EventsPage from './components/pages/EventsPage.jsx';
+import LoginPage from './components/pages/LoginPage.jsx';
 
 const TOKEN_KEY = 'miutx_api_token';
 
@@ -42,6 +47,7 @@ function formatDateTime(value) {
     return value;
 }
 
+
 function Toast({ toast, onClose }) {
     if (!toast) return null;
 
@@ -57,141 +63,6 @@ function Toast({ toast, onClose }) {
     );
 }
 
-function LoginPage({ onLogin, isSubmitting }) {
-    const [form, setForm] = useState({ email: '', password: '' });
-
-    const submit = async (e) => {
-        e.preventDefault();
-        await onLogin(form);
-    };
-
-    return (
-        <main className="login-page">
-            <header className="login-header">
-                <div className="logo-mark">mx</div>
-                <nav className="mini-nav">home</nav>
-            </header>
-
-            <section className="login-panel">
-                <h1 className="login-title">Miutx Portal Access</h1>
-                <p className="login-subtitle">Secure login for Master Admin, Accountant and Employee.</p>
-
-                <form className="login-form" onSubmit={submit}>
-                    <input
-                        className="login-input"
-                        type="email"
-                        placeholder="name@company.com"
-                        value={form.email}
-                        onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                        required
-                    />
-
-                    <input
-                        className="login-input"
-                        type="password"
-                        placeholder="******"
-                        value={form.password}
-                        onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                        required
-                    />
-
-                    <button type="submit" className="btn-primary" disabled={isSubmitting}>
-                        {isSubmitting ? 'Logging in...' : 'Login'}
-                    </button>
-                </form>
-            </section>
-        </main>
-    );
-}
-
-function SideNavAdmin() {
-    return (
-        <nav>
-            <NavLink to="/admin/dashboard" className={({ isActive }) => `side-item ${isActive ? 'active' : ''}`}>
-                Dashboard
-            </NavLink>
-
-            <div className="side-section-title">Staff</div>
-            <NavLink to="/admin/staff/users" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
-                User
-            </NavLink>
-            <NavLink to="/admin/staff/roles" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
-                Role & Permission
-            </NavLink>
-
-            <a className="side-item" href="#">Product & Service</a>
-            <a className="side-item" href="#">HRM</a>
-            <a className="side-item" href="#">Settings</a>
-        </nav>
-    );
-}
-
-function SideNavEmployee() {
-    return (
-        <nav>
-            <a className="side-item active" href="#">Dashboard</a>
-            <a className="side-item" href="#">Pay Slip</a>
-            <a className="side-item" href="#">Leave List</a>
-            <a className="side-item" href="#">Attendance</a>
-            <a className="side-item" href="#">My Library</a>
-        </nav>
-    );
-}
-
-function AppShell({ user, onLogout, children, admin = false }) {
-    return (
-        <div className="app-shell">
-            <aside className="side-nav">
-                <div className="brand">
-                    adency<span>/4</span>
-                </div>
-                {admin ? <SideNavAdmin /> : <SideNavEmployee />}
-            </aside>
-
-            <main className="main-content">
-                <header className="topbar">
-                    <div className="user-chip">{user?.name}</div>
-                    <button className="btn-ghost" type="button" onClick={onLogout}>
-                        Logout
-                    </button>
-                </header>
-                {children}
-            </main>
-        </div>
-    );
-}
-
-function AdminDashboard({ user, onLogout }) {
-    return (
-        <AppShell user={user} onLogout={onLogout} admin>
-            <h1 className="dashboard-title">Dashboard (Admin)</h1>
-            <section className="notice-row">
-                <div className="badge-orange">Notice Board</div>
-                <div className="notice-text">Welcome back {user?.name}</div>
-                <button className="btn-primary small">View All</button>
-            </section>
-            <section className="grid-two">
-                <article className="panel">
-                    <h3>Attendance Calendar</h3>
-                    <p className="panel-muted">Month: March 2026</p>
-                    <div className="fake-calendar"></div>
-                </article>
-                <article className="panel stack-gap">
-                    <div>
-                        <h3>Regularize Your Attendance</h3>
-                        <p className="panel-muted">Your days of absence: 0</p>
-                    </div>
-                    <div>
-                        <h3>Apply For Leave</h3>
-                        <p className="panel-muted">Available Casual Leave: 9</p>
-                        <p className="panel-muted">Available Sick Leave: 14</p>
-                    </div>
-                </article>
-            </section>
-        </AppShell>
-    );
-}
-
 function UserModal({ open, onClose, onSubmit, roles, busy, mode, initialUser }) {
     const [form, setForm] = useState({
         id: null,
@@ -199,8 +70,6 @@ function UserModal({ open, onClose, onSubmit, roles, busy, mode, initialUser }) 
         email: '',
         role_name: 'employee',
         password: '',
-        avatar: null,
-        avatar_preview: null,
     });
 
     useEffect(() => {
@@ -215,8 +84,6 @@ function UserModal({ open, onClose, onSubmit, roles, busy, mode, initialUser }) 
                 email: initialUser.email || '',
                 role_name: initialUser.role || fallbackRole,
                 password: '',
-                avatar: null,
-                avatar_preview: initialUser.avatar_url || null,
             });
             return;
         }
@@ -227,8 +94,6 @@ function UserModal({ open, onClose, onSubmit, roles, busy, mode, initialUser }) 
             email: '',
             role_name: fallbackRole,
             password: '',
-            avatar: null,
-            avatar_preview: null,
         });
     }, [open, mode, initialUser, roles]);
 
@@ -244,10 +109,6 @@ function UserModal({ open, onClose, onSubmit, roles, busy, mode, initialUser }) 
 
         if (form.password) {
             payload.append('password', form.password);
-        }
-
-        if (form.avatar) {
-            payload.append('avatar', form.avatar);
         }
 
         await onSubmit({ ...form, payload });
@@ -313,31 +174,6 @@ function UserModal({ open, onClose, onSubmit, roles, busy, mode, initialUser }) 
                             required={mode !== 'edit'}
                         />
                     </label>
-
-                    <label>
-                        Avatar Image
-                        <input
-                            className="form-input"
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                                const file = e.target.files?.[0] || null;
-                                setForm((p) => ({
-                                    ...p,
-                                    avatar: file,
-                                    avatar_preview: file ? URL.createObjectURL(file) : p.avatar_preview,
-                                }));
-                            }}
-                        />
-                    </label>
-
-                    <div className="avatar-preview-wrap">
-                        {form.avatar_preview ? (
-                            <img src={form.avatar_preview} alt="Avatar preview" className="avatar-preview" />
-                        ) : (
-                            <div className="avatar-circle avatar-preview">{initials(form.name)}</div>
-                        )}
-                    </div>
 
                     <div className="modal-actions">
                         <button className="btn-primary small" type="submit" disabled={busy}>
@@ -459,16 +295,11 @@ function StaffUsersPage({ user, onLogout, headers, showToast }) {
                 <section className="user-grid">
                     {users.map((item) => (
                         <article key={item.id} className="user-card">
-                            {item.avatar_url ? (
-                                <img src={item.avatar_url} alt={item.name} className="user-avatar-image" />
-                            ) : (
-                                <div className="avatar-circle">{initials(item.name)}</div>
-                            )}
+                            <div className="avatar-circle">{initials(item.name)}</div>
                             <h3>{item.name}</h3>
                             <span className="role-pill">{item.role || 'N/A'}</span>
                             <p>{item.email}</p>
                             <p>{formatDateTime(item.last_login_at)}</p>
-
                             <div className="user-card-actions">
                                 <button className="btn-ghost small" type="button" onClick={() => openEdit(item)}>
                                     Edit
@@ -497,12 +328,15 @@ function StaffUsersPage({ user, onLogout, headers, showToast }) {
 
 function RoleCard({ role, permissions, onSave, busy }) {
     const [selected, setSelected] = useState(role.permissions || []);
+    const canEdit = Boolean(role?.can_edit);
 
     useEffect(() => {
         setSelected(role.permissions || []);
     }, [role.id, role.permissions]);
 
     const toggle = (name) => {
+        if (!canEdit) return;
+
         setSelected((prev) =>
             prev.includes(name) ? prev.filter((x) => x !== name) : [...prev, name],
         );
@@ -518,14 +352,19 @@ function RoleCard({ role, permissions, onSave, busy }) {
                             type="checkbox"
                             checked={selected.includes(perm.name)}
                             onChange={() => toggle(perm.name)}
+                            disabled={!canEdit}
                         />
                         <span>{perm.name}</span>
                     </label>
                 ))}
             </div>
-            <button className="btn-primary small" type="button" onClick={() => onSave(role.id, selected)} disabled={busy}>
-                {busy ? 'Saving...' : 'Save Permissions'}
-            </button>
+            {canEdit ? (
+                <button className="btn-primary small" type="button" onClick={() => onSave(role.id, selected)} disabled={busy}>
+                    {busy ? 'Saving...' : 'Save Permissions'}
+                </button>
+            ) : (
+                <p className="panel-muted">Read only.</p>
+            )}
         </article>
     );
 }
@@ -590,40 +429,14 @@ function StaffRolesPage({ user, onLogout, headers, showToast }) {
     );
 }
 
-function EmployeeDashboard({ user, onLogout }) {
-    return (
-        <AppShell user={user} onLogout={onLogout}>
-            <h1 className="dashboard-title">Dashboard (Employee)</h1>
-            <section className="notice-row">
-                <div className="badge-orange">Notice Board</div>
-                <div className="notice-text">Hello {user?.name}</div>
-                <button className="btn-primary small">View All</button>
-            </section>
-            <section className="grid-two">
-                <article className="panel">
-                    <h3>Attendance Calendar</h3>
-                    <p className="panel-muted">Month: March 2026</p>
-                    <div className="fake-calendar"></div>
-                </article>
-                <article className="panel stack-gap">
-                    <div>
-                        <h3>Regularize Your Attendance</h3>
-                        <p className="panel-muted">Your days of absence: 0</p>
-                    </div>
-                    <div>
-                        <h3>Apply For Leave</h3>
-                        <p className="panel-muted">Available Casual Leave: 9</p>
-                        <p className="panel-muted">Available Sick Leave: 14</p>
-                    </div>
-                </article>
-            </section>
-        </AppShell>
-    );
-}
-
 function ProtectedRoute({ user, role, children }) {
     if (!user) return <Navigate to="/login" replace />;
     if (normalizeRoleGroup(user.role_group) !== role) return <Navigate to="/" replace />;
+    return children;
+}
+
+function ProtectedAny({ user, children }) {
+    if (!user) return <Navigate to="/login" replace />;
     return children;
 }
 
@@ -723,7 +536,7 @@ export default function ReactApp() {
                     path="/admin/dashboard"
                     element={
                         <ProtectedRoute user={user} role="admin">
-                            <AdminDashboard user={user} onLogout={logout} />
+                            <AdminDashboard user={user} onLogout={logout} headers={authHeaders} />
                         </ProtectedRoute>
                     }
                 />
@@ -750,8 +563,17 @@ export default function ReactApp() {
                     path="/employee/dashboard"
                     element={
                         <ProtectedRoute user={user} role="employee">
-                            <EmployeeDashboard user={user} onLogout={logout} />
+                            <EmployeeDashboard user={user} onLogout={logout} headers={authHeaders} />
                         </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/events"
+                    element={
+                        <ProtectedAny user={user}>
+                            <EventsPage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} />
+                        </ProtectedAny>
                     }
                 />
 
@@ -761,3 +583,4 @@ export default function ReactApp() {
         </>
     );
 }
+

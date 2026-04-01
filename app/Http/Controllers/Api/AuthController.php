@@ -31,6 +31,7 @@ class AuthController extends Controller
                 'name' => $result['user']->name,
                 'email' => $result['user']->email,
                 'type' => $result['user']->type,
+                'permissions' => $authService->permissionNamesFor($result['user']),
             ],
         ], $result['message']);
     }
@@ -46,6 +47,7 @@ class AuthController extends Controller
             'email' => $user->email,
             'type' => $user->type,
             'role_group' => $authService->roleGroupFor($user),
+            'permissions' => $authService->permissionNamesFor($user),
         ], 'Current user profile.');
     }
 

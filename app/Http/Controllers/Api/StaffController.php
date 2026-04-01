@@ -8,10 +8,12 @@ use App\Http\Requests\Api\UpdateRolePermissionsRequest;
 use App\Http\Requests\Api\UpdateStaffUserRequest;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\AuthService;
 use App\Services\StaffService;
 use App\Traits\RespondsWithMessages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class StaffController extends Controller
 {
@@ -49,13 +51,60 @@ class StaffController extends Controller
         return $this->successResponse(null, 'User deleted successfully.');
     }
 
-    public function roles(StaffService $staffService): JsonResponse
+    public function roles(Request $request, StaffService $staffService, AuthService $authService): JsonResponse
     {
-        return $this->successResponse($staffService->rolesWithPermissions(), 'Roles and permissions loaded.');
+        /** @var \App\Models\User $currentUser */
+        $currentUser = $request->user();
+
+        $data = $staffService->rolesWithPermissions();
+        $allRoles = collect($data['roles']);
+        $allPermissions = collect($data['permissions']);
+
+        $isMaster = $authService->isMasterAdmin($currentUser);
+        $canDelegate = ! $isMaster && $authService->canDelegatePermissionManagement($currentUser);
+        $currentRole = $authService->normalizedPrimaryRole($currentUser);
+
+        $visibleRoles = $this->filterVisibleRoles($allRoles, $isMaster, $canDelegate, $currentRole)
+            ->map(function (array $role) use ($isMaster, $canDelegate): array {
+                $normalized = strtolower(trim($role['name']));
+
+                $canEdit = $isMaster || ($canDelegate && ($normalized === 'accountant' || $normalized === 'employee'));
+                $role['can_edit'] = $canEdit;
+
+                return $role;
+            })
+            ->values();
+
+        $visiblePermissionNames = collect();
+
+        if ($isMaster || $canDelegate) {
+            $visiblePermissionNames = $allPermissions->pluck('name');
+        } else {
+            $visiblePermissionNames = $visibleRoles
+                ->flatMap(fn (array $role) => $role['permissions'] ?? [])
+                ->unique()
+                ->values();
+        }
+
+        $filteredPermissions = $allPermissions
+            ->filter(fn (array $permission): bool => $visiblePermissionNames->contains($permission['name']))
+            ->values();
+
+        return $this->successResponse([
+            'permissions' => $filteredPermissions,
+            'roles' => $visibleRoles,
+        ], 'Roles and permissions loaded.');
     }
 
-    public function updateRolePermissions(Role $role, UpdateRolePermissionsRequest $request, StaffService $staffService): JsonResponse
+    public function updateRolePermissions(Role $role, UpdateRolePermissionsRequest $request, StaffService $staffService, AuthService $authService): JsonResponse
     {
+        /** @var \App\Models\User $currentUser */
+        $currentUser = $request->user();
+
+        if (! $authService->canManageRolePermissions($currentUser, $role)) {
+            return $this->errorResponse('You do not have permission to update this role.', 403);
+        }
+
         $updated = $staffService->syncRolePermissions($role, $request->validated('permissions'));
 
         return $this->successResponse([
@@ -63,5 +112,22 @@ class StaffController extends Controller
             'name' => $updated->name,
             'permissions' => $updated->permissions->pluck('name')->values()->all(),
         ], 'Role permissions updated successfully.');
+    }
+
+    private function filterVisibleRoles(Collection $roles, bool $isMaster, bool $canDelegate, string $currentRole): Collection
+    {
+        if ($isMaster) {
+            return $roles;
+        }
+
+        if ($canDelegate) {
+            return $roles->filter(function (array $role) use ($currentRole): bool {
+                $name = strtolower(trim($role['name']));
+
+                return $name === $currentRole || $name === 'accountant' || $name === 'employee';
+            });
+        }
+
+        return $roles->filter(fn (array $role): bool => strtolower(trim($role['name'])) === $currentRole);
     }
 }

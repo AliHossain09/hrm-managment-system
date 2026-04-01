@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
@@ -144,6 +146,70 @@ class AuthService
             : 'dashboard.admin';
     }
 
+    public function isMasterAdmin(User $user): bool
+    {
+        $normalized = $this->normalizeRole($user->primaryRoleName());
+
+        return str_contains($normalized, 'master admin') || str_contains($normalized, 'super admin');
+    }
+
+    public function permissionNamesFor(User $user): array
+    {
+        return DB::table('permissions')
+            ->join('role_has_permissions', 'permissions.id', '=', 'role_has_permissions.permission_id')
+            ->join('model_has_roles', 'role_has_permissions.role_id', '=', 'model_has_roles.role_id')
+            ->where('model_has_roles.model_type', User::class)
+            ->where('model_has_roles.model_id', $user->id)
+            ->pluck('permissions.name')
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function hasPermission(User $user, string $permission): bool
+    {
+        return in_array($permission, $this->permissionNamesFor($user), true);
+    }
+
+    public function normalizedPrimaryRole(User $user): string
+    {
+        return $this->normalizeRole($user->primaryRoleName());
+    }
+
+    public function canDelegatePermissionManagement(User $user): bool
+    {
+        if ($this->isMasterAdmin($user)) {
+            return true;
+        }
+
+        $role = $this->normalizedPrimaryRole($user);
+
+        if (! str_contains($role, 'admin') || str_contains($role, 'master admin')) {
+            return false;
+        }
+
+        return $this->hasPermission($user, 'permission.update');
+    }
+
+    public function canManageRolePermissions(User $actor, Role $targetRole): bool
+    {
+        if ($this->isMasterAdmin($actor)) {
+            return true;
+        }
+
+        if (! $this->canDelegatePermissionManagement($actor)) {
+            return false;
+        }
+
+        $target = $this->normalizeRole($targetRole->name);
+
+        if (str_contains($target, 'master admin') || $target === 'admin') {
+            return false;
+        }
+
+        return $target === 'accountant' || $target === 'employee';
+    }
+
     private function normalizeRole(?string $value): string
     {
         $normalized = Str::of((string) $value)
@@ -156,4 +222,3 @@ class AuthService
         return $normalized;
     }
 }
-
