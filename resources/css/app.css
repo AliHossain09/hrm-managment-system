@@ -1025,6 +1025,311 @@ body {
     width: min(980px, 100%);
 }
 
+
+.employee-view-card {
+    width: min(1080px, 100%);
+    background: #f7faf8;
+}
+
+.employee-view-hero {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid #dbe9de;
+    border-radius: 0.9rem;
+    background: #fff;
+}
+
+.employee-view-avatar {
+    width: 86px;
+    height: 86px;
+    border-radius: 0.9rem;
+    object-fit: cover;
+    border: 1px solid #d0dfd3;
+}
+
+.employee-view-avatar-fallback {
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    color: #1d4d38;
+    background: #d8f0de;
+}
+
+.employee-view-hero-info h3 {
+    margin: 0;
+    color: #18325f;
+    font-size: 1.35rem;
+}
+
+.employee-view-hero-info p {
+    margin: 0.2rem 0 0.45rem;
+    color: #6a7f9f;
+}
+
+.employee-view-badges {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.55rem;
+}
+
+.employee-view-badge {
+    display: inline-block;
+    padding: 0.18rem 0.52rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #1f355f;
+    background: #d8e6ff;
+}
+
+.employee-view-badge.soft {
+    background: #d9f4de;
+    color: #1f6a3e;
+}
+
+.employee-view-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    color: #4e648f;
+    font-size: 0.88rem;
+}
+
+.employee-view-overview {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.6rem;
+    margin-top: 0.9rem;
+}
+
+.employee-view-tile {
+    padding: 0.7rem;
+    border-radius: 0.75rem;
+    border: 1px solid #d9e7f3;
+    background: #fff;
+}
+
+.employee-view-tile p {
+    margin: 0;
+    font-size: 0.78rem;
+    color: #6d7f9e;
+}
+
+.employee-view-tile h4 {
+    margin: 0.2rem 0 0;
+    color: #14356b;
+    font-size: 0.95rem;
+}
+
+.employee-view-grid {
+    margin-top: 0.95rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.employee-view-panel {
+    padding: 0.85rem;
+    border-radius: 0.85rem;
+    border: 1px solid #dce6f5;
+    background: #fff;
+}
+
+.employee-view-panel h4 {
+    margin: 0 0 0.5rem;
+    color: #1b3869;
+}
+
+.employee-view-panel ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.35rem;
+    color: #435e8f;
+    font-size: 0.9rem;
+}
+
+.employee-view-address {
+    margin: 0;
+    color: #435e8f;
+    line-height: 1.45;
+}
+
+.employee-view-tabs {
+    margin-top: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+}
+
+.employee-view-tab {
+    border: 1px solid #d8e3f1;
+    background: #fff;
+    color: #27436f;
+    border-radius: 0.6rem;
+    padding: 0.44rem 0.72rem;
+    font-size: 0.84rem;
+    font-weight: 600;
+}
+
+.employee-view-tab.active {
+    border-color: #b9e7c4;
+    background: #e8f8ec;
+    color: #1d6a3d;
+}
+
+.employee-portal-block {
+    margin-top: 0.9rem;
+    border: 1px solid #deebdf;
+    border-radius: 0.9rem;
+    background: #fff;
+    padding: 0.8rem;
+}
+
+.employee-portal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+}
+
+.employee-portal-head h4 {
+    margin: 0;
+    color: #1b3869;
+}
+
+.employee-portal-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.employee-period-switch {
+    display: inline-flex;
+    border: 1px solid #d9e2f0;
+    border-radius: 0.55rem;
+    overflow: hidden;
+}
+
+.employee-period-switch button {
+    border: none;
+    background: #fff;
+    color: #2e4872;
+    padding: 0.38rem 0.7rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.employee-period-switch button.active {
+    background: #d8f3dd;
+    color: #1f6a3d;
+}
+
+.employee-date-chip {
+    border: 1px solid #d9e3f1;
+    background: #fff;
+    border-radius: 0.5rem;
+    padding: 0.38rem 0.7rem;
+    color: #38527d;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.employee-portal-grid {
+    margin-top: 0.75rem;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.6rem;
+}
+
+.employee-portal-card {
+    border: 1px solid #dfe8f5;
+    border-radius: 0.75rem;
+    background: #fafdff;
+    padding: 0.65rem;
+}
+
+.employee-portal-card h5 {
+    margin: 0 0 0.3rem;
+    color: #1f355f;
+    font-size: 0.92rem;
+}
+
+.employee-portal-card p {
+    margin: 0.1rem 0;
+    color: #6a7f9f;
+    font-size: 0.82rem;
+}
+
+.employee-portal-card strong {
+    color: #173260;
+    font-size: 1rem;
+}
+
+.employee-salary-ring {
+    width: 62px;
+    height: 62px;
+    border-radius: 999px;
+    margin: 0.45rem 0;
+    background: conic-gradient(#29c6b5 0 50%, #f1be47 50% 70%, #ff7f6a 70% 85%, #44c86b 85% 100%);
+    position: relative;
+}
+
+.employee-salary-ring::after {
+    content: '';
+    position: absolute;
+    inset: 11px;
+    border-radius: 999px;
+    background: #fff;
+}
+
+.employee-salary-setup {
+    margin-top: 0.95rem;
+    border: 1px solid #dde8f5;
+    border-radius: 0.9rem;
+    background: #fff;
+    padding: 0.8rem;
+}
+
+.employee-salary-setup-head {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 0.7rem;
+}
+
+.employee-salary-setup-head h4 {
+    margin: 0;
+    color: #1b3869;
+}
+
+.employee-type-pill {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: #d8f3dd;
+    color: #1f6a3d;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.employee-salary-setup-head .btn-ghost {
+    margin-left: auto;
+}
+
+.employee-salary-table th,
+.employee-salary-table td {
+    font-size: 0.84rem;
+}
+
 .btn-mini-muted {
     background: #64748b;
 }
@@ -1094,6 +1399,24 @@ body {
     .employee-toolbar-left,
     .employee-toolbar-right {
         flex-wrap: wrap;
+    }
+
+    .employee-view-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .employee-portal-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .employee-view-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .employee-portal-grid {
+        grid-template-columns: 1fr;
     }
 }
 
