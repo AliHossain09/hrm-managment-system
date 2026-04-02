@@ -326,7 +326,7 @@ export default function AdminEmployeeAttendancePage({ user, onLogout, headers, s
 
             <section className="panel">
                 <div className="attendance-head">
-                    <div className="attendance-head-actions">
+                    <div className="attendance-head-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
                         <input
                             type="text"
                             className="form-input attendance-search-input"
@@ -334,7 +334,7 @@ export default function AdminEmployeeAttendancePage({ user, onLogout, headers, s
                             value={searchText}
                             onChange={(event) => setSearchText(event.target.value)}
                         />
-                        <button type="button" className="btn-ghost attendance-filter-btn" onClick={() => setShowFilters((prev) => !prev)}>
+                        <button type="button" className="btn-ghost attendance-filter-btn" style={{ whiteSpace: 'nowrap' }} onClick={() => setShowFilters((prev) => !prev)}>
                             {showFilters ? 'Hide Filters' : 'Filters'}
                         </button>
                     </div>
