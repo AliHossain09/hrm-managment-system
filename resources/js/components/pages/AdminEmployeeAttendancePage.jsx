@@ -153,6 +153,20 @@ export default function AdminEmployeeAttendancePage({ user, onLogout, headers, s
         () => filteredItems.length > 0 && filteredItems.every((item) => selectedIds.includes(Number(item.id))),
         [filteredItems, selectedIds],
     );
+    const showOvertimeColumn = useMemo(() => {
+        return filteredItems.some((item) => {
+            const minutes = Number(item.overtime_minutes || 0);
+            const label = String(item.overtime_label || '').trim();
+            return minutes > 0 || (label !== '' && label !== '-');
+        });
+    }, [filteredItems]);
+
+    const showNotesColumn = useMemo(() => {
+        return filteredItems.some((item) => {
+            const note = String(item.notes ?? '').trim();
+            return note !== '' && note !== '-' && note.toLowerCase() !== 'null';
+        });
+    }, [filteredItems]);
 
     const toggleAll = () => {
         if (allSelected) {
@@ -411,15 +425,17 @@ export default function AdminEmployeeAttendancePage({ user, onLogout, headers, s
                                     <th>Date</th>
                                     <th>Clock In</th>
                                     <th>Clock Out</th>
-                                    <th>Over Time</th>
-                                    <th>Notes</th>
+                                    {showOvertimeColumn ? <th>Over Time</th> : null}
+                                    {showNotesColumn ? <th>Notes</th> : null}
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredItems.length === 0 ? (
                                     <tr>
-                                        <td colSpan="11" className="text-muted">No attendance records found.</td>
+                                        <td colSpan={showOvertimeColumn && showNotesColumn ? 11 : showOvertimeColumn || showNotesColumn ? 10 : 9} className="text-muted">
+                                            No attendance records found.
+                                        </td>
                                     </tr>
                                 ) : (
                                     filteredItems.map((item) => (
@@ -441,8 +457,8 @@ export default function AdminEmployeeAttendancePage({ user, onLogout, headers, s
                                             <td>{item.attendance_date || '-'}</td>
                                             <td>{item.check_in || '-'}</td>
                                             <td>{item.check_out || '-'}</td>
-                                            <td>{item.overtime_label ? formatDuration(item.overtime_minutes) : '-'}</td>
-                                            <td>{item.status === 'leave' ? (item.notes || '-') : '-'}</td>
+                                            {showOvertimeColumn ? <td>{item.overtime_label ? formatDuration(item.overtime_minutes) : '-'}</td> : null}
+                                            {showNotesColumn ? <td>{item.status === 'leave' ? (item.notes || '-') : '-'}</td> : null}
                                             <td>
                                                 <div className="employee-actions">
                                                     <button className="btn-mini btn-mini-edit" type="button" onClick={() => setViewingItem(item)}>View</button>
