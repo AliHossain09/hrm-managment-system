@@ -3,9 +3,21 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import AppShell from './components/layout/AppShell.jsx';
 import AdminDashboard from './components/pages/AdminDashboard.jsx';
+import AdminEmployeesPage from './components/pages/AdminEmployeesPage.jsx';
+import AdminHrmDepartmentsPage from './components/pages/AdminHrmDepartmentsPage.jsx';
+import AdminHrmDesignationsPage from './components/pages/AdminHrmDesignationsPage.jsx';
+import AdminHrmPartTimeHoursPage from './components/pages/AdminHrmPartTimeHoursPage.jsx';
+import AdminHrmUserRolesPage from './components/pages/AdminHrmUserRolesPage.jsx';
+import AdminHrmUserTypesPage from './components/pages/AdminHrmUserTypesPage.jsx';
+import AdminLeaveTypesPage from './components/pages/AdminLeaveTypesPage.jsx';
 import EmployeeDashboard from './components/pages/EmployeeDashboard.jsx';
 import EventsPage from './components/pages/EventsPage.jsx';
 import LoginPage from './components/pages/LoginPage.jsx';
+import OwnerDashboardPage from './components/pages/OwnerDashboardPage.jsx';
+import OwnerSettingsPage from './components/pages/OwnerSettingsPage.jsx';
+import OwnerSuperAdminsPage from './components/pages/OwnerSuperAdminsPage.jsx';
+import SuperAdminDashboardPage from './components/pages/SuperAdminDashboardPage.jsx';
+import SuperAdminWorkspacesPage from './components/pages/SuperAdminWorkspacesPage.jsx';
 
 const TOKEN_KEY = 'miutx_api_token';
 
@@ -69,7 +81,10 @@ function UserModal({ open, onClose, onSubmit, roles, busy, mode, initialUser }) 
         name: '',
         email: '',
         role_name: 'employee',
+        user_type: 'permanent',
+        part_time_hours: '',
         password: '',
+        avatar: null,
     });
 
     useEffect(() => {
@@ -83,7 +98,10 @@ function UserModal({ open, onClose, onSubmit, roles, busy, mode, initialUser }) 
                 name: initialUser.name || '',
                 email: initialUser.email || '',
                 role_name: initialUser.role || fallbackRole,
+                user_type: initialUser.user_type || 'permanent',
+                part_time_hours: initialUser.part_time_hours != null ? String(initialUser.part_time_hours) : '',
                 password: '',
+                avatar: null,
             });
             return;
         }
@@ -93,7 +111,10 @@ function UserModal({ open, onClose, onSubmit, roles, busy, mode, initialUser }) 
             name: '',
             email: '',
             role_name: fallbackRole,
+            user_type: 'permanent',
+            part_time_hours: '',
             password: '',
+            avatar: null,
         });
     }, [open, mode, initialUser, roles]);
 
@@ -106,10 +127,14 @@ function UserModal({ open, onClose, onSubmit, roles, busy, mode, initialUser }) 
         payload.append('name', form.name);
         payload.append('email', form.email);
         payload.append('role_name', form.role_name);
+        payload.append('user_type', form.user_type);
 
-        if (form.password) {
-            payload.append('password', form.password);
+        if (form.user_type === 'part_time' && form.part_time_hours) {
+            payload.append('part_time_hours', form.part_time_hours);
         }
+
+        if (form.password) payload.append('password', form.password);
+        if (form.avatar) payload.append('avatar', form.avatar);
 
         await onSubmit({ ...form, payload });
     };
@@ -128,35 +153,17 @@ function UserModal({ open, onClose, onSubmit, roles, busy, mode, initialUser }) 
                 <form className="modal-grid" onSubmit={submit}>
                     <label>
                         Name
-                        <input
-                            className="form-input"
-                            value={form.name}
-                            onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                            placeholder="Enter User Name"
-                            required
-                        />
+                        <input className="form-input" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} placeholder="Enter User Name" required />
                     </label>
 
                     <label>
                         Email
-                        <input
-                            className="form-input"
-                            type="email"
-                            value={form.email}
-                            onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-                            placeholder="Enter User Email"
-                            required
-                        />
+                        <input className="form-input" type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} placeholder="Enter User Email" required />
                     </label>
 
                     <label>
                         User Role
-                        <select
-                            className="form-input"
-                            value={form.role_name}
-                            onChange={(e) => setForm((p) => ({ ...p, role_name: e.target.value }))}
-                            required
-                        >
+                        <select className="form-input" value={form.role_name} onChange={(e) => setForm((p) => ({ ...p, role_name: e.target.value }))} required>
                             {roles.map((role) => (
                                 <option key={role.id} value={role.name}>{role.name}</option>
                             ))}
@@ -164,15 +171,30 @@ function UserModal({ open, onClose, onSubmit, roles, busy, mode, initialUser }) 
                     </label>
 
                     <label>
+                        User Type
+                        <select className="form-input" value={form.user_type} onChange={(e) => setForm((p) => ({ ...p, user_type: e.target.value, part_time_hours: e.target.value === 'part_time' ? p.part_time_hours : '' }))} required>
+                            <option value="permanent">Permanent</option>
+                            <option value="contractual">Contractual</option>
+                            <option value="probation">Probation</option>
+                            <option value="part_time">Part Time</option>
+                        </select>
+                    </label>
+
+                    {form.user_type === 'part_time' ? (
+                        <label>
+                            Part Time Hours
+                            <input className="form-input" type="number" min="1" value={form.part_time_hours} onChange={(e) => setForm((p) => ({ ...p, part_time_hours: e.target.value }))} placeholder="Enter hours" required />
+                        </label>
+                    ) : null}
+
+                    <label>
                         Password {mode === 'edit' ? '(optional)' : ''}
-                        <input
-                            className="form-input"
-                            type="password"
-                            value={form.password}
-                            onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-                            placeholder="Enter User Password"
-                            required={mode !== 'edit'}
-                        />
+                        <input className="form-input" type="password" value={form.password} onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))} placeholder="Enter User Password" required={mode !== 'edit'} />
+                    </label>
+
+                    <label>
+                        Image (optional)
+                        <input className="form-input" type="file" accept=".jpg,.jpeg,.png,.webp,image/*" onChange={(e) => setForm((p) => ({ ...p, avatar: e.target.files?.[0] || null }))} />
                     </label>
 
                     <div className="modal-actions">
@@ -186,7 +208,6 @@ function UserModal({ open, onClose, onSubmit, roles, busy, mode, initialUser }) 
         </div>
     );
 }
-
 function StaffUsersPage({ user, onLogout, headers, showToast }) {
     const [users, setUsers] = useState([]);
     const [roles, setRoles] = useState([]);
@@ -195,6 +216,7 @@ function StaffUsersPage({ user, onLogout, headers, showToast }) {
     const [modalMode, setModalMode] = useState('create');
     const [selectedUser, setSelectedUser] = useState(null);
     const [saving, setSaving] = useState(false);
+    const [openMenuUserId, setOpenMenuUserId] = useState(null);
 
     const loadUsers = async () => {
         const [{ data: usersData }, { data: rolesData }] = await Promise.all([
@@ -203,7 +225,7 @@ function StaffUsersPage({ user, onLogout, headers, showToast }) {
         ]);
 
         setUsers(usersData?.data?.users || []);
-        setRoles(rolesData?.data?.roles || []);
+        setRoles((rolesData?.data?.roles || []).filter((role) => role?.can_assign));
     };
 
     useEffect(() => {
@@ -219,6 +241,12 @@ function StaffUsersPage({ user, onLogout, headers, showToast }) {
         run();
     }, []);
 
+    useEffect(() => {
+        const closeOnOutside = () => setOpenMenuUserId(null);
+        document.addEventListener('click', closeOnOutside);
+        return () => document.removeEventListener('click', closeOnOutside);
+    }, []);
+
     const openCreate = () => {
         setModalMode('create');
         setSelectedUser(null);
@@ -229,6 +257,7 @@ function StaffUsersPage({ user, onLogout, headers, showToast }) {
         setModalMode('edit');
         setSelectedUser(targetUser);
         setModalOpen(true);
+        setOpenMenuUserId(null);
     };
 
     const submitUser = async ({ id, payload }) => {
@@ -275,9 +304,15 @@ function StaffUsersPage({ user, onLogout, headers, showToast }) {
             await api.delete(`/staff/users/${targetUser.id}`, { headers });
             await loadUsers();
             showToast('success', 'User deleted successfully.');
+            setOpenMenuUserId(null);
         } catch (error) {
             showToast('error', extractMessage(error));
         }
+    };
+
+    const toggleMenu = (event, userId) => {
+        event.stopPropagation();
+        setOpenMenuUserId((prev) => (prev === userId ? null : userId));
     };
 
     return (
@@ -295,19 +330,37 @@ function StaffUsersPage({ user, onLogout, headers, showToast }) {
                 <section className="user-grid">
                     {users.map((item) => (
                         <article key={item.id} className="user-card">
-                            <div className="avatar-circle">{initials(item.name)}</div>
+                            <div className="user-actions-wrap" onClick={(event) => event.stopPropagation()}>
+                                <button
+                                    className="user-menu-trigger"
+                                    type="button"
+                                    onClick={(event) => toggleMenu(event, item.id)}
+                                    aria-label="Open user actions"
+                                    aria-expanded={openMenuUserId === item.id}
+                                >
+                                    ...
+                                </button>
+                                {openMenuUserId === item.id ? (
+                                    <div className="user-menu-dropdown">
+                                        <button className="user-menu-item" type="button" onClick={() => openEdit(item)}>
+                                            Edit
+                                        </button>
+                                        <button className="user-menu-item user-menu-item-danger" type="button" onClick={() => deleteUser(item)}>
+                                            Delete
+                                        </button>
+                                    </div>
+                                ) : null}
+                            </div>
+
+                            {item.avatar_url ? (
+                                <img src={item.avatar_url} alt={item.name} className="user-avatar-image" />
+                            ) : (
+                                <div className="avatar-circle">{initials(item.name)}</div>
+                            )}
                             <h3>{item.name}</h3>
                             <span className="role-pill">{item.role || 'N/A'}</span>
                             <p>{item.email}</p>
-                            <p>{formatDateTime(item.last_login_at)}</p>
-                            <div className="user-card-actions">
-                                <button className="btn-ghost small" type="button" onClick={() => openEdit(item)}>
-                                    Edit
-                                </button>
-                                <button className="btn-danger small" type="button" onClick={() => deleteUser(item)}>
-                                    Delete
-                                </button>
-                            </div>
+                            <p className="user-created-at">{formatDateTime(item.created_at)}</p>
                         </article>
                     ))}
                 </section>
@@ -435,6 +488,19 @@ function ProtectedRoute({ user, role, children }) {
     return children;
 }
 
+function ProtectedOwner({ user, children }) {
+    if (!user) return <Navigate to='/login' replace />;
+    if (String(user?.account_level || '').toLowerCase() !== 'owner') return <Navigate to='/' replace />;
+    return children;
+}
+
+function ProtectedSuperAdmin({ user, children }) {
+    if (!user) return <Navigate to="/login" replace />;
+    const level = String(user?.account_level || '').toLowerCase();
+    if (level !== 'super_admin' && level !== 'super admin') return <Navigate to="/" replace />;
+    return children;
+}
+
 function ProtectedAny({ user, children }) {
     if (!user) return <Navigate to="/login" replace />;
     return children;
@@ -487,6 +553,7 @@ export default function ReactApp() {
             const nextUser = {
                 ...data?.data?.user,
                 role_group: data?.data?.role_group,
+                workspace: data?.data?.workspace || null,
             };
 
             localStorage.setItem(TOKEN_KEY, nextToken);
@@ -515,7 +582,12 @@ export default function ReactApp() {
         }
     };
 
-    const defaultPath = normalizeRoleGroup(user?.role_group) === 'employee' ? '/employee/dashboard' : '/admin/dashboard';
+    const level = String(user?.account_level || '').toLowerCase();
+    const isOwner = level === 'owner';
+    const isSuperAdmin = level === 'super_admin' || level === 'super admin';
+    const defaultPath = isOwner
+        ? '/owner/dashboard'
+        : (isSuperAdmin ? '/super-admin/dashboard' : (normalizeRoleGroup(user?.role_group) === 'employee' ? '/employee/dashboard' : '/admin/dashboard'));
 
     if (booting) {
         return <div style={{ padding: '2rem' }}>Loading...</div>;
@@ -529,6 +601,69 @@ export default function ReactApp() {
                     path="/login"
                     element={
                         user ? <Navigate to={defaultPath} replace /> : <LoginPage onLogin={login} isSubmitting={submitting} />
+                    }
+                />
+
+                <Route
+                    path="/owner/dashboard"
+                    element={
+                        <ProtectedOwner user={user}>
+                            <OwnerDashboardPage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} />
+                        </ProtectedOwner>
+                    }
+                />
+
+                <Route
+                    path="/owner/super-admins"
+                    element={
+                        <ProtectedOwner user={user}>
+                            <OwnerSuperAdminsPage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} mode="index" />
+                        </ProtectedOwner>
+                    }
+                />
+
+                <Route
+                    path="/owner/super-admins/create"
+                    element={
+                        <ProtectedOwner user={user}>
+                            <OwnerSuperAdminsPage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} mode="create" />
+                        </ProtectedOwner>
+                    }
+                />
+
+                <Route
+                    path="/owner/settings"
+                    element={
+                        <ProtectedOwner user={user}>
+                            <OwnerSettingsPage user={user} onLogout={logout} />
+                        </ProtectedOwner>
+                    }
+                />
+
+                <Route
+                    path="/super-admin/dashboard"
+                    element={
+                        <ProtectedSuperAdmin user={user}>
+                            <SuperAdminDashboardPage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} />
+                        </ProtectedSuperAdmin>
+                    }
+                />
+
+                <Route
+                    path="/super-admin/workspaces"
+                    element={
+                        <ProtectedSuperAdmin user={user}>
+                            <SuperAdminWorkspacesPage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} mode="index" />
+                        </ProtectedSuperAdmin>
+                    }
+                />
+
+                <Route
+                    path="/super-admin/workspaces/create"
+                    element={
+                        <ProtectedSuperAdmin user={user}>
+                            <SuperAdminWorkspacesPage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} mode="create" />
+                        </ProtectedSuperAdmin>
                     }
                 />
 
@@ -558,7 +693,67 @@ export default function ReactApp() {
                         </ProtectedRoute>
                     }
                 />
+                <Route
+                    path="/admin/hrm/employees"
+                    element={
+                        <ProtectedRoute user={user} role="admin">
+                            <AdminEmployeesPage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/admin/hrm/user-roles"
+                    element={
+                        <ProtectedRoute user={user} role="admin">
+                            <AdminHrmUserRolesPage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} />
+                        </ProtectedRoute>
+                    }
+                />
 
+                <Route
+                    path="/admin/hrm/departments"
+                    element={
+                        <ProtectedRoute user={user} role="admin">
+                            <AdminHrmDepartmentsPage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin/hrm/designations"
+                    element={
+                        <ProtectedRoute user={user} role="admin">
+                            <AdminHrmDesignationsPage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin/hrm/user-types"
+                    element={
+                        <ProtectedRoute user={user} role="admin">
+                            <AdminHrmUserTypesPage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin/hrm/part-time-hours"
+                    element={
+                        <ProtectedRoute user={user} role="admin">
+                            <AdminHrmPartTimeHoursPage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin/leaves"
+                    element={
+                        <ProtectedRoute user={user} role="admin">
+                            <AdminLeaveTypesPage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} />
+                        </ProtectedRoute>
+                    }
+                />
                 <Route
                     path="/employee/dashboard"
                     element={
@@ -583,4 +778,20 @@ export default function ReactApp() {
         </>
     );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

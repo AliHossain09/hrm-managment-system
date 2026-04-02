@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\StoreStaffUserRequest;
+use App\Http\Requests\Api\UpdateEmployeeDetailsRequest;
 use App\Http\Requests\Api\UpdateRolePermissionsRequest;
 use App\Http\Requests\Api\UpdateStaffUserRequest;
 use App\Models\Role;
@@ -19,31 +20,97 @@ class StaffController extends Controller
 {
     use RespondsWithMessages;
 
-    public function users(StaffService $staffService): JsonResponse
+    public function users(Request $request, StaffService $staffService): JsonResponse
     {
+        /** @var User $currentUser */
+        $currentUser = $request->user();
+
         return $this->successResponse([
-            'users' => $staffService->users(),
+            'users' => $staffService->users($currentUser),
         ], 'Staff users loaded.');
     }
 
-    public function storeUser(StoreStaffUserRequest $request, StaffService $staffService): JsonResponse
+    public function employees(Request $request, StaffService $staffService): JsonResponse
     {
-        $user = $staffService->createUser($request->validated());
+        /** @var User $currentUser */
+        $currentUser = $request->user();
+
+        return $this->successResponse([
+            'employees' => $staffService->employeeRecords($currentUser),
+        ], 'Employee records loaded.');
+    }
+
+    public function storeUser(StoreStaffUserRequest $request, StaffService $staffService, AuthService $authService): JsonResponse
+    {
+        /** @var User $currentUser */
+        $currentUser = $request->user();
+
+        $roleName = (string) $request->validated('role_name');
+        if (! $authService->canAssignUserRole($currentUser, $roleName)) {
+            return $this->errorResponse('You cannot assign this role.', 403);
+        }
+
+        $user = $staffService->createUser($request->validated(), $currentUser);
 
         return $this->successResponse($staffService->presentUser($user), 'User created successfully.', 201);
     }
 
-    public function updateUser(UpdateStaffUserRequest $request, User $user, StaffService $staffService): JsonResponse
+    public function updateUser(UpdateStaffUserRequest $request, User $user, StaffService $staffService, AuthService $authService): JsonResponse
     {
+        /** @var User $currentUser */
+        $currentUser = $request->user();
+
+        if ($currentUser->current_workspace_id && (int) $currentUser->current_workspace_id !== (int) $user->current_workspace_id) {
+            return $this->errorResponse('You cannot edit user from another workspace.', 403);
+        }
+
+        if (! $authService->canManageUserAccount($currentUser, $user)) {
+            return $this->errorResponse('You cannot edit this account.', 403);
+        }
+
+        $roleName = (string) $request->validated('role_name');
+        if (! $authService->canAssignUserRole($currentUser, $roleName)) {
+            return $this->errorResponse('You cannot assign this role.', 403);
+        }
+
         $updated = $staffService->updateUser($user, $request->validated());
 
         return $this->successResponse($staffService->presentUser($updated), 'User updated successfully.');
     }
 
-    public function deleteUser(Request $request, User $user, StaffService $staffService): JsonResponse
+    public function updateEmployee(UpdateEmployeeDetailsRequest $request, User $user, StaffService $staffService, AuthService $authService): JsonResponse
     {
-        if ((int) $request->user()->id === (int) $user->id) {
+        /** @var User $currentUser */
+        $currentUser = $request->user();
+
+        if ($currentUser->current_workspace_id && (int) $currentUser->current_workspace_id !== (int) $user->current_workspace_id) {
+            return $this->errorResponse('You cannot edit employee from another workspace.', 403);
+        }
+
+        if (! $authService->canManageUserAccount($currentUser, $user)) {
+            return $this->errorResponse('You cannot edit this employee.', 403);
+        }
+
+        $updated = $staffService->updateEmployeeDetails($user, $request->validated());
+
+        return $this->successResponse($staffService->presentUser($updated), 'Employee details updated successfully.');
+    }
+
+    public function deleteUser(Request $request, User $user, StaffService $staffService, AuthService $authService): JsonResponse
+    {
+        /** @var User $currentUser */
+        $currentUser = $request->user();
+
+        if ((int) $currentUser->id === (int) $user->id) {
             return $this->errorResponse('You cannot delete your own account.', 422);
+        }
+
+        if ($currentUser->current_workspace_id && (int) $currentUser->current_workspace_id !== (int) $user->current_workspace_id) {
+            return $this->errorResponse('You cannot delete user from another workspace.', 403);
+        }
+
+        if (! $authService->canManageUserAccount($currentUser, $user)) {
+            return $this->errorResponse('You cannot delete this account.', 403);
         }
 
         $staffService->deleteUser($user);
@@ -53,7 +120,7 @@ class StaffController extends Controller
 
     public function roles(Request $request, StaffService $staffService, AuthService $authService): JsonResponse
     {
-        /** @var \App\Models\User $currentUser */
+        /** @var User $currentUser */
         $currentUser = $request->user();
 
         $data = $staffService->rolesWithPermissions();
@@ -65,11 +132,12 @@ class StaffController extends Controller
         $currentRole = $authService->normalizedPrimaryRole($currentUser);
 
         $visibleRoles = $this->filterVisibleRoles($allRoles, $isMaster, $canDelegate, $currentRole)
-            ->map(function (array $role) use ($isMaster, $canDelegate): array {
+            ->map(function (array $role) use ($isMaster, $canDelegate, $authService, $currentUser): array {
                 $normalized = strtolower(trim($role['name']));
 
                 $canEdit = $isMaster || ($canDelegate && ($normalized === 'accountant' || $normalized === 'employee'));
                 $role['can_edit'] = $canEdit;
+                $role['can_assign'] = $authService->canAssignUserRole($currentUser, $normalized);
 
                 return $role;
             })
@@ -98,7 +166,7 @@ class StaffController extends Controller
 
     public function updateRolePermissions(Role $role, UpdateRolePermissionsRequest $request, StaffService $staffService, AuthService $authService): JsonResponse
     {
-        /** @var \App\Models\User $currentUser */
+        /** @var User $currentUser */
         $currentUser = $request->user();
 
         if (! $authService->canManageRolePermissions($currentUser, $role)) {

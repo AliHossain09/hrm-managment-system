@@ -24,7 +24,12 @@ class EventController extends Controller
         $canUpdate = $authService->hasPermission($user, 'event.update');
         $canDelete = $authService->hasPermission($user, 'event.delete');
 
-        $events = Event::query()
+        $query = Event::query();
+        if ($user->current_workspace_id) {
+            $query->where('workspace_id', $user->current_workspace_id);
+        }
+
+        $events = $query
             ->orderBy('start_date')
             ->orderBy('id')
             ->get()
@@ -59,6 +64,7 @@ class EventController extends Controller
 
         $event = Event::query()->create([
             ...$request->validated(),
+            'workspace_id' => $user->current_workspace_id,
             'created_by' => $user->id,
             'updated_by' => $user->id,
         ]);
@@ -79,6 +85,10 @@ class EventController extends Controller
 
         if (! $authService->hasPermission($user, 'event.update')) {
             return $this->errorResponse('You do not have permission to edit event.', 403);
+        }
+
+        if ($user->current_workspace_id && (int) $event->workspace_id !== (int) $user->current_workspace_id) {
+            return $this->errorResponse('You cannot edit event from another workspace.', 403);
         }
 
         $event->update([
@@ -102,6 +112,10 @@ class EventController extends Controller
 
         if (! $authService->hasPermission($user, 'event.delete')) {
             return $this->errorResponse('You do not have permission to delete event.', 403);
+        }
+
+        if ($user->current_workspace_id && (int) $event->workspace_id !== (int) $user->current_workspace_id) {
+            return $this->errorResponse('You cannot delete event from another workspace.', 403);
         }
 
         $event->delete();

@@ -26,11 +26,13 @@ class AuthController extends Controller
             'token_type' => $result['token_type'],
             'role_group' => $result['role_group'],
             'dashboard_route' => $result['dashboard_route'],
+            'workspace' => $result['workspace'],
             'user' => [
                 'id' => $result['user']->id,
                 'name' => $result['user']->name,
                 'email' => $result['user']->email,
                 'type' => $result['user']->type,
+                'account_level' => $result['user']->account_level,
                 'permissions' => $authService->permissionNamesFor($result['user']),
             ],
         ], $result['message']);
@@ -46,7 +48,9 @@ class AuthController extends Controller
             'name' => $user->name,
             'email' => $user->email,
             'type' => $user->type,
+            'account_level' => $user->account_level,
             'role_group' => $authService->roleGroupFor($user),
+            'workspace' => $authService->workspacePayload($user),
             'permissions' => $authService->permissionNamesFor($user),
         ], 'Current user profile.');
     }

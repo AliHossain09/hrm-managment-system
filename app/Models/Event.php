@@ -11,6 +11,7 @@ class Event extends Model
     use HasFactory;
 
     protected $fillable = [
+        'workspace_id',
         'title',
         'start_date',
         'end_date',
@@ -25,6 +26,11 @@ class Event extends Model
             'start_date' => 'date',
             'end_date' => 'date',
         ];
+    }
+
+    public function workspace(): BelongsTo
+    {
+        return $this->belongsTo(Workspace::class);
     }
 
     public function creator(): BelongsTo
