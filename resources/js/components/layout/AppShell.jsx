@@ -78,6 +78,9 @@ function SideNavAdmin({ isMasterAdmin }) {
                     <NavLink to="/admin/leaves" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
                         Leave Create & Index
                     </NavLink>
+                    <NavLink to="/events" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
+                        Event Calendar
+                    </NavLink>
                 </>
             ) : null}
 
