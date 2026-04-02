@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import AppShell from '../layout/AppShell.jsx';
+import { confirmDelete } from '../../utils/sweetAlert.js';
 
 const api = axios.create({
     baseURL: '/api/v1',
@@ -84,7 +85,7 @@ export default function AdminHrmPartTimeHoursPage({ user, onLogout, headers, sho
     };
 
     const deleteItem = async (item) => {
-        const ok = window.confirm(`Delete part time hour "${item.hours}"?`);
+        const ok = await confirmDelete(`Delete part time hour "${item.hours}"?`);
         if (!ok) return;
 
         try {
@@ -176,6 +177,7 @@ export default function AdminHrmPartTimeHoursPage({ user, onLogout, headers, sho
         </AppShell>
     );
 }
+
 
 
 

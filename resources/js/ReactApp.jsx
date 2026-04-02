@@ -18,6 +18,7 @@ import OwnerSettingsPage from './components/pages/OwnerSettingsPage.jsx';
 import OwnerSuperAdminsPage from './components/pages/OwnerSuperAdminsPage.jsx';
 import SuperAdminDashboardPage from './components/pages/SuperAdminDashboardPage.jsx';
 import SuperAdminWorkspacesPage from './components/pages/SuperAdminWorkspacesPage.jsx';
+import { confirmDelete } from './utils/sweetAlert.js';
 
 const TOKEN_KEY = 'miutx_api_token';
 
@@ -297,7 +298,7 @@ function StaffUsersPage({ user, onLogout, headers, showToast }) {
             return;
         }
 
-        const ok = window.confirm(`Delete user ${targetUser.name}?`);
+        const ok = await confirmDelete(`Delete user ${targetUser.name}?`);
         if (!ok) return;
 
         try {
@@ -778,6 +779,9 @@ export default function ReactApp() {
         </>
     );
 }
+
+
+
 
 
 

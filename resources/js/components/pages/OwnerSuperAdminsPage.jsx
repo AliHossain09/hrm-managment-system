@@ -1,6 +1,7 @@
 import axios from 'axios';
 import React from 'react';
 import AppShell from '../layout/AppShell.jsx';
+import { confirmDelete } from '../../utils/sweetAlert.js';
 
 const api = axios.create({
     baseURL: '/api/v1',
@@ -141,7 +142,7 @@ export default function OwnerSuperAdminsPage({ user, onLogout, headers, showToas
     };
 
     const remove = async (row) => {
-        const ok = window.confirm(`Delete super admin ${row.email}?`);
+        const ok = await confirmDelete(`Delete super admin ${row.email}?`);
         if (!ok) return;
 
         setBusy(true);
@@ -245,3 +246,4 @@ export default function OwnerSuperAdminsPage({ user, onLogout, headers, showToas
         </AppShell>
     );
 }
+

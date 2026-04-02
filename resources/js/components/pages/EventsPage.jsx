@@ -4,6 +4,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import AppShell from '../layout/AppShell.jsx';
+import { confirmDelete } from '../../utils/sweetAlert.js';
 
 const api = axios.create({
     baseURL: '/api/v1',
@@ -207,7 +208,7 @@ export default function EventsPage({ user, onLogout, headers, showToast }) {
     };
 
     const deleteEvent = async (eventItem) => {
-        const ok = window.confirm(`Delete event: ${eventItem.title}?`);
+        const ok = await confirmDelete(`Delete event: ${eventItem.title}?`);
         if (!ok) return;
 
         try {
@@ -311,3 +312,4 @@ export default function EventsPage({ user, onLogout, headers, showToast }) {
         </AppShell>
     );
 }
+

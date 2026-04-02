@@ -1,6 +1,7 @@
 import axios from 'axios';
 import React, { useEffect, useMemo, useState } from 'react';
 import AppShell from '../layout/AppShell.jsx';
+import { confirmDelete } from '../../utils/sweetAlert.js';
 
 const api = axios.create({
     baseURL: '/api/v1',
@@ -510,7 +511,7 @@ export default function AdminEmployeesPage({ user, onLogout, headers, showToast 
     };
 
     const deleteEmployee = async (employee) => {
-        const ok = window.confirm(`Delete employee ${employee.name}?`);
+        const ok = await confirmDelete(`Delete employee ${employee.name}?`);
         if (!ok) return;
 
         try {
@@ -681,3 +682,5 @@ export default function AdminEmployeesPage({ user, onLogout, headers, showToast 
         </AppShell>
     );
 }
+
+

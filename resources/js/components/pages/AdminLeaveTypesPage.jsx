@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import AppShell from '../layout/AppShell.jsx';
+import { confirmDelete } from '../../utils/sweetAlert.js';
 
 const api = axios.create({
     baseURL: '/api/v1',
@@ -91,7 +92,7 @@ export default function AdminLeaveTypesPage({ user, onLogout, headers, showToast
     };
 
     const deleteItem = async (item) => {
-        const ok = window.confirm(`Delete leave type "${item.leave_name}"?`);
+        const ok = await confirmDelete(`Delete leave type "${item.leave_name}"?`);
         if (!ok) return;
 
         try {
@@ -197,4 +198,5 @@ export default function AdminLeaveTypesPage({ user, onLogout, headers, showToast
         </AppShell>
     );
 }
+
 

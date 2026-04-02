@@ -1,6 +1,7 @@
 import axios from 'axios';
 import React from 'react';
 import AppShell from '../layout/AppShell.jsx';
+import { confirmDelete } from '../../utils/sweetAlert.js';
 
 const api = axios.create({
     baseURL: '/api/v1',
@@ -162,7 +163,7 @@ export default function SuperAdminWorkspacesPage({ user, onLogout, headers, show
     };
 
     const remove = async (row) => {
-        const ok = window.confirm(`Delete dashboard ${row.name}?`);
+        const ok = await confirmDelete(`Delete dashboard ${row.name}?`);
         if (!ok) return;
 
         setBusy(true);
@@ -263,3 +264,4 @@ export default function SuperAdminWorkspacesPage({ user, onLogout, headers, show
         </AppShell>
     );
 }
+

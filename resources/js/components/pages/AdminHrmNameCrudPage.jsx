@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import AppShell from '../layout/AppShell.jsx';
+import { confirmDelete } from '../../utils/sweetAlert.js';
 
 const api = axios.create({
     baseURL: '/api/v1',
@@ -93,7 +94,7 @@ export default function AdminHrmNameCrudPage({
     };
 
     const deleteItem = async (item) => {
-        const ok = window.confirm(`Delete ${confirmDeleteLabel} "${item.name}"?`);
+        const ok = await confirmDelete(`Delete ${confirmDeleteLabel} "${item.name}"?`);
         if (!ok) return;
 
         try {
@@ -183,4 +184,5 @@ export default function AdminHrmNameCrudPage({
         </AppShell>
     );
 }
+
 
