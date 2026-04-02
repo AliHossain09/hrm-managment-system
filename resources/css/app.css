@@ -1344,6 +1344,13 @@ body {
     margin: 0;
 }
 
+.attendance-toolbar-inline {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    flex-wrap: nowrap !important;
+}
+
 .attendance-head-actions {
     display: grid;
     grid-template-columns: minmax(220px, 340px) auto;
@@ -1353,9 +1360,10 @@ body {
 }
 
 .attendance-search-input {
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
+    width: 340px !important;
+    min-width: 340px !important;
+    max-width: 340px !important;
+    flex: 0 0 340px !important;
 }
 
 .attendance-filter-btn {
@@ -1628,10 +1636,13 @@ body {
         width: 100%;
         min-width: 100%;
         max-width: 100%;
+        flex: 1 1 auto;
     }
 
-    .attendance-head-actions {
+    .attendance-head-actions,
+    .attendance-toolbar-inline {
         grid-template-columns: 1fr;
+        display: grid !important;
     }
 
     .attendance-filter-box {
