@@ -326,10 +326,21 @@ export default function AdminEmployeeAttendancePage({ user, onLogout, headers, s
 
             <section className="panel">
                 <div className="attendance-head">
-                    <div className="attendance-head-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
+                    <div
+                        className="attendance-head-actions"
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            flexWrap: 'nowrap',
+                            width: 'auto',
+                            maxWidth: '100%',
+                        }}
+                    >
                         <input
                             type="text"
                             className="form-input attendance-search-input"
+                            style={{ width: '340px', minWidth: '340px', maxWidth: '340px', flex: '0 0 340px' }}
                             placeholder="Search..."
                             value={searchText}
                             onChange={(event) => setSearchText(event.target.value)}
