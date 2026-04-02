@@ -311,37 +311,27 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
 
                     <section className="employee-view-grid">
                         <article className="employee-view-panel">
-                            <h4>Personal</h4>
+                            <h4>Employee Details</h4>
                             <ul>
                                 <li><strong>Date of Birth:</strong> {form.date_of_birth || '-'}</li>
                                 <li><strong>Sex:</strong> {form.sex || '-'}</li>
                                 <li><strong>Blood Group:</strong> {form.blood_group || '-'}</li>
                                 <li><strong>National ID:</strong> {form.national_id_card_number || '-'}</li>
+                                <li><strong>Father Name:</strong> {form.father_name || '-'}</li>
+                                <li><strong>Mother Name:</strong> {form.mother_name || '-'}</li>
+                                <li><strong>Father Phone:</strong> {form.father_phone || '-'}</li>
                             </ul>
+                            <p className="employee-view-address"><strong>Address:</strong> {form.address || '-'}</p>
                         </article>
 
                         <article className="employee-view-panel">
-                            <h4>Bank & Payroll</h4>
+                            <h4>Payroll &amp; Finance</h4>
                             <ul>
                                 <li><strong>Bank Name:</strong> {form.bank_name || '-'}</li>
                                 <li><strong>Branch Location:</strong> {form.bank_branch_location || '-'}</li>
                                 <li><strong>Account Number:</strong> {form.bank_account_number || '-'}</li>
                                 <li><strong>Basic Salary:</strong> {form.basic_salary || '-'}</li>
                             </ul>
-                        </article>
-
-                        <article className="employee-view-panel">
-                            <h4>Family</h4>
-                            <ul>
-                                <li><strong>Father Name:</strong> {form.father_name || '-'}</li>
-                                <li><strong>Mother Name:</strong> {form.mother_name || '-'}</li>
-                                <li><strong>Father Phone:</strong> {form.father_phone || '-'}</li>
-                            </ul>
-                        </article>
-
-                        <article className="employee-view-panel">
-                            <h4>Address</h4>
-                            <p className="employee-view-address">{form.address || '-'}</p>
                         </article>
                     </section>
                 </div>
