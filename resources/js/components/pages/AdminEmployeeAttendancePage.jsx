@@ -54,6 +54,20 @@ export default function AdminEmployeeAttendancePage({ user, onLogout, headers, s
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selectedIds, setSelectedIds] = useState([]);
+    const [searchText, setSearchText] = useState('');
+    const [showFilters, setShowFilters] = useState(false);
+    const [filters, setFilters] = useState({
+        user_id: 'all',
+        status: 'all',
+        date_from: '',
+        date_to: '',
+    });
+    const [draftFilters, setDraftFilters] = useState({
+        user_id: 'all',
+        status: 'all',
+        date_from: '',
+        date_to: '',
+    });
     const [editingItem, setEditingItem] = useState(null);
     const [viewingItem, setViewingItem] = useState(null);
     const [saving, setSaving] = useState(false);
@@ -84,15 +98,74 @@ export default function AdminEmployeeAttendancePage({ user, onLogout, headers, s
         run();
     }, []);
 
-    const allSelected = useMemo(() => items.length > 0 && items.every((item) => selectedIds.includes(Number(item.id))), [items, selectedIds]);
+    const employeeFilterOptions = useMemo(() => {
+        const optionMap = new Map();
+
+        items.forEach((item) => {
+            const userId = Number(item.user_id || 0);
+            if (userId > 0 && !optionMap.has(userId)) {
+                optionMap.set(userId, item.user_name || `Employee #${userId}`);
+            }
+        });
+
+        return Array.from(optionMap.entries()).map(([id, name]) => ({ id, name }));
+    }, [items]);
+
+    const filteredItems = useMemo(() => {
+        const keyword = searchText.trim().toLowerCase();
+        const fromTime = filters.date_from ? new Date(filters.date_from).getTime() : null;
+        const toTime = filters.date_to ? new Date(filters.date_to).getTime() : null;
+
+        return items.filter((item) => {
+            const textPass = keyword.length === 0 || [
+                String(item.id || ''),
+                String(item.user_name || ''),
+                String(item.user_email || ''),
+                String(item.status || ''),
+                String(item.attendance_date || ''),
+            ].join(' ').toLowerCase().includes(keyword);
+
+            if (!textPass) return false;
+
+            if (filters.user_id !== 'all' && Number(item.user_id) !== Number(filters.user_id)) {
+                return false;
+            }
+
+            if (filters.status !== 'all' && item.status !== filters.status) {
+                return false;
+            }
+
+            if (!fromTime && !toTime) return true;
+
+            if (!item.attendance_date) return false;
+
+            const currentDateTime = new Date(item.attendance_date).getTime();
+            if (Number.isNaN(currentDateTime)) return false;
+
+            if (fromTime && currentDateTime < fromTime) return false;
+            if (toTime && currentDateTime > toTime) return false;
+
+            return true;
+        });
+    }, [items, searchText, filters]);
+
+    const allSelected = useMemo(
+        () => filteredItems.length > 0 && filteredItems.every((item) => selectedIds.includes(Number(item.id))),
+        [filteredItems, selectedIds],
+    );
 
     const toggleAll = () => {
         if (allSelected) {
-            setSelectedIds([]);
+            const visibleIds = filteredItems.map((item) => Number(item.id));
+            setSelectedIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
             return;
         }
 
-        setSelectedIds(items.map((item) => Number(item.id)));
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            filteredItems.forEach((item) => next.add(Number(item.id)));
+            return Array.from(next);
+        });
     };
 
     const toggleOne = (id) => {
@@ -131,6 +204,21 @@ export default function AdminEmployeeAttendancePage({ user, onLogout, headers, s
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+    };
+
+    const applyFilters = () => {
+        setFilters({ ...draftFilters });
+    };
+
+    const resetFilters = () => {
+        const empty = {
+            user_id: 'all',
+            status: 'all',
+            date_from: '',
+            date_to: '',
+        };
+        setFilters(empty);
+        setDraftFilters(empty);
     };
 
     const startEdit = (item) => {
@@ -197,7 +285,7 @@ export default function AdminEmployeeAttendancePage({ user, onLogout, headers, s
 
     return (
         <AppShell user={user} onLogout={onLogout} admin>
-            <h1 className="dashboard-title">Employee Attendance Index</h1>
+            <h1 className="dashboard-title">Attendance Records</h1>
 
             {editingItem ? (
                 <section className="panel leave-form-panel" style={{ marginBottom: '1rem' }}>
@@ -238,9 +326,75 @@ export default function AdminEmployeeAttendancePage({ user, onLogout, headers, s
 
             <section className="panel">
                 <div className="attendance-head">
-                    <h3>Employee Attendance</h3>
+                    <div className="attendance-head-actions">
+                        <input
+                            type="text"
+                            className="form-input attendance-search-input"
+                            placeholder="Search..."
+                            value={searchText}
+                            onChange={(event) => setSearchText(event.target.value)}
+                        />
+                        <button type="button" className="btn-ghost attendance-filter-btn" onClick={() => setShowFilters((prev) => !prev)}>
+                            {showFilters ? 'Hide Filters' : 'Filters'}
+                        </button>
+                    </div>
                     <button type="button" className="btn-mini btn-mini-delete" onClick={exportSelected}>Export Selected</button>
                 </div>
+
+                {showFilters ? (
+                    <div className="attendance-filter-box">
+                        <label>
+                            Employee
+                            <select
+                                className="form-input"
+                                value={draftFilters.user_id}
+                                onChange={(event) => setDraftFilters((prev) => ({ ...prev, user_id: event.target.value }))}
+                            >
+                                <option value="all">All Employees</option>
+                                {employeeFilterOptions.map((employee) => (
+                                    <option key={employee.id} value={employee.id}>
+                                        {employee.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <label>
+                            Status
+                            <select
+                                className="form-input"
+                                value={draftFilters.status}
+                                onChange={(event) => setDraftFilters((prev) => ({ ...prev, status: event.target.value }))}
+                            >
+                                <option value="all">All Statuses</option>
+                                <option value="present">Present</option>
+                                <option value="leave">Leave</option>
+                                <option value="absent">Absent</option>
+                            </select>
+                        </label>
+                        <label>
+                            Date From
+                            <input
+                                className="form-input"
+                                type="date"
+                                value={draftFilters.date_from}
+                                onChange={(event) => setDraftFilters((prev) => ({ ...prev, date_from: event.target.value }))}
+                            />
+                        </label>
+                        <label>
+                            Date To
+                            <input
+                                className="form-input"
+                                type="date"
+                                value={draftFilters.date_to}
+                                onChange={(event) => setDraftFilters((prev) => ({ ...prev, date_to: event.target.value }))}
+                            />
+                        </label>
+                        <div className="attendance-filter-actions">
+                            <button type="button" className="btn-primary" onClick={applyFilters}>Apply Filters</button>
+                            <button type="button" className="btn-ghost" onClick={resetFilters}>Reset Filters</button>
+                        </div>
+                    </div>
+                ) : null}
 
                 {loading ? (
                     <p className="panel-muted">Loading attendance...</p>
@@ -263,12 +417,12 @@ export default function AdminEmployeeAttendancePage({ user, onLogout, headers, s
                                 </tr>
                             </thead>
                             <tbody>
-                                {items.length === 0 ? (
+                                {filteredItems.length === 0 ? (
                                     <tr>
                                         <td colSpan="11" className="text-muted">No attendance records found.</td>
                                     </tr>
                                 ) : (
-                                    items.map((item) => (
+                                    filteredItems.map((item) => (
                                         <tr key={item.id}>
                                             <td><input type="checkbox" checked={selectedIds.includes(Number(item.id))} onChange={() => toggleOne(item.id)} /></td>
                                             <td>{item.id}</td>

@@ -1337,6 +1337,7 @@ body {
     align-items: center;
     gap: 0.6rem;
     margin-bottom: 0.65rem;
+    flex-wrap: nowrap;
 }
 
 .attendance-head h4 {
@@ -1347,6 +1348,50 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    flex: 0 1 auto;
+}
+
+.attendance-search-input {
+    width: 320px;
+    max-width: 42vw;
+    min-width: 260px;
+    flex: 0 0 auto;
+}
+
+.attendance-filter-btn {
+    padding: 0.58rem 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.attendance-filter-box {
+    margin-bottom: 0.75rem;
+    border: 1px solid #dbe6f4;
+    border-radius: 0.75rem;
+    background: #f9fbff;
+    padding: 0.8rem;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+    gap: 0.65rem;
+}
+
+.attendance-filter-box label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    color: #28426d;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.attendance-filter-actions {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.45rem;
     flex-wrap: wrap;
 }
 
@@ -1432,6 +1477,19 @@ body {
 .employee-attendance-table th,
 .employee-attendance-table td {
     font-size: 0.82rem;
+}
+
+.employee-attendance-table thead th:last-child,
+.employee-attendance-table tbody td:last-child {
+    width: 1%;
+    text-align: right;
+    white-space: nowrap;
+    padding-right: 0.55rem;
+}
+
+.employee-attendance-table .employee-actions {
+    justify-content: flex-end;
+    flex-wrap: nowrap;
 }
 
 .attendance-view-card {
@@ -1533,6 +1591,14 @@ body {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .attendance-head {
+        flex-wrap: wrap;
+    }
+
+    .attendance-filter-box {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .attendance-notes-field {
         grid-column: span 2;
     }
@@ -1555,8 +1621,19 @@ body {
         grid-template-columns: 1fr;
     }
 
+    .attendance-search-input {
+        width: 100%;
+        min-width: 100%;
+        max-width: 100%;
+    }
+
+    .attendance-filter-box {
+        grid-template-columns: 1fr;
+    }
+
     .attendance-notes-field,
-    .attendance-form-actions {
+    .attendance-form-actions,
+    .attendance-filter-actions {
         grid-column: span 1;
     }
 }
