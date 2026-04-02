@@ -153,20 +153,17 @@ export default function AdminEmployeeAttendancePage({ user, onLogout, headers, s
         () => filteredItems.length > 0 && filteredItems.every((item) => selectedIds.includes(Number(item.id))),
         [filteredItems, selectedIds],
     );
-    const showOvertimeColumn = useMemo(() => {
-        return filteredItems.some((item) => {
-            const minutes = Number(item.overtime_minutes || 0);
-            const label = String(item.overtime_label || '').trim();
-            return minutes > 0 || (label !== '' && label !== '-');
-        });
-    }, [filteredItems]);
+    const showOvertimeColumn = useMemo(
+        () => filteredItems.some((item) => Number(item.overtime_minutes || 0) > 0),
+        [filteredItems],
+    );
 
-    const showNotesColumn = useMemo(() => {
-        return filteredItems.some((item) => {
-            const note = String(item.notes ?? '').trim();
-            return note !== '' && note !== '-' && note.toLowerCase() !== 'null';
-        });
-    }, [filteredItems]);
+    const showNotesColumn = useMemo(
+        () => filteredItems.some((item) => item.status === 'leave' && String(item.notes ?? '').trim().length > 0),
+        [filteredItems],
+    );
+
+    const tableColumnCount = 9 + (showOvertimeColumn ? 1 : 0) + (showNotesColumn ? 1 : 0);
 
     const toggleAll = () => {
         if (allSelected) {
@@ -433,7 +430,7 @@ export default function AdminEmployeeAttendancePage({ user, onLogout, headers, s
                             <tbody>
                                 {filteredItems.length === 0 ? (
                                     <tr>
-                                        <td colSpan={showOvertimeColumn && showNotesColumn ? 11 : showOvertimeColumn || showNotesColumn ? 10 : 9} className="text-muted">
+                                        <td colSpan={tableColumnCount} className="text-muted">
                                             No attendance records found.
                                         </td>
                                     </tr>
