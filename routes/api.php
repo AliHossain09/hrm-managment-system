@@ -40,6 +40,10 @@ Route::prefix('v1')->group(function (): void {
             Route::delete('/staff/users/{user}', [StaffController::class, 'deleteUser']);
             Route::get('/staff/employees', [StaffController::class, 'employees']);
             Route::put('/staff/employees/{user}', [StaffController::class, 'updateEmployee']);
+            Route::get('/staff/attendance', [StaffController::class, 'attendanceIndex']);
+            Route::post('/staff/attendance', [StaffController::class, 'attendanceStore']);
+            Route::put('/staff/attendance/{attendanceRecord}', [StaffController::class, 'attendanceUpdate']);
+            Route::delete('/staff/attendance/{attendanceRecord}', [StaffController::class, 'attendanceDelete']);
             Route::get('/staff/roles', [StaffController::class, 'roles']);
             Route::put('/staff/roles/{role}', [StaffController::class, 'updateRolePermissions']);
 
@@ -75,6 +79,7 @@ Route::prefix('v1')->group(function (): void {
         });
     });
 });
+
 
 
 

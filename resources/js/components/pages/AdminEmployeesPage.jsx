@@ -94,8 +94,31 @@ function escapeCsv(value) {
     return raw;
 }
 
-function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, departments, designations }) {
+function formatDuration(minutes) {
+    const safe = Number(minutes || 0);
+    if (safe <= 0) return '-';
+
+    const hours = Math.floor(safe / 60);
+    const mins = safe % 60;
+
+    return `${hours}h ${mins}m`;
+}
+
+function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, departments, designations, headers, showToast }) {
     const [activeViewTab, setActiveViewTab] = useState('personal');
+    const [attendanceItems, setAttendanceItems] = useState([]);
+    const [attendanceLoading, setAttendanceLoading] = useState(false);
+    const [attendanceSaving, setAttendanceSaving] = useState(false);
+    const [attendanceSelectedIds, setAttendanceSelectedIds] = useState([]);
+    const [attendanceEditingId, setAttendanceEditingId] = useState(null);
+    const [attendanceViewing, setAttendanceViewing] = useState(null);
+    const [attendanceForm, setAttendanceForm] = useState({
+        attendance_date: '',
+        status: 'present',
+        check_in: '',
+        check_out: '',
+        notes: '',
+    });
     const [form, setForm] = useState({
         date_of_birth: '',
         date_of_joining: '',
@@ -122,6 +145,16 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
         }
 
         setActiveViewTab('personal');
+        setAttendanceSelectedIds([]);
+        setAttendanceEditingId(null);
+        setAttendanceViewing(null);
+        setAttendanceForm({
+            attendance_date: new Date().toISOString().slice(0, 10),
+            status: 'present',
+            check_in: '',
+            check_out: '',
+            notes: '',
+        });
 
         setForm({
             date_of_birth: employee.date_of_birth || '',
@@ -143,6 +176,27 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
             father_phone: employee.father_phone || '',
         });
     }, [open, employee]);
+
+    const loadAttendance = async () => {
+        if (!employee?.id) return;
+        setAttendanceLoading(true);
+        try {
+            const { data } = await api.get('/staff/attendance', {
+                headers,
+                params: { user_id: employee.id },
+            });
+            setAttendanceItems(data?.data?.records || []);
+        } catch (error) {
+            showToast('error', extractMessage(error));
+        } finally {
+            setAttendanceLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!open || !employee?.id || !readOnly || activeViewTab !== 'attendance') return;
+        loadAttendance();
+    }, [open, employee?.id, activeViewTab, readOnly]);
 
     const readOnly = mode === 'view';
 
@@ -196,11 +250,21 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
                                 <li><strong>Sex:</strong> {form.sex || '-'}</li>
                                 <li><strong>Blood Group:</strong> {form.blood_group || '-'}</li>
                                 <li><strong>National ID:</strong> {form.national_id_card_number || '-'}</li>
+                            </ul>
+                        </article>
+
+                        <article className="employee-view-panel">
+                            <h4>Family</h4>
+                            <ul>
                                 <li><strong>Father Name:</strong> {form.father_name || '-'}</li>
                                 <li><strong>Mother Name:</strong> {form.mother_name || '-'}</li>
                                 <li><strong>Father Phone:</strong> {form.father_phone || '-'}</li>
                             </ul>
-                            <p className="employee-view-address"><strong>Address:</strong> {form.address || '-'}</p>
+                        </article>
+
+                        <article className="employee-view-panel">
+                            <h4>Address</h4>
+                            <p className="employee-view-address">{form.address || '-'}</p>
                         </article>
                     </section>
                 );
@@ -318,15 +382,274 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
             }
 
             if (activeViewTab === 'attendance') {
+                const visibleIds = attendanceItems.map((item) => Number(item.id));
+                const allSelected = visibleIds.length > 0 && visibleIds.every((id) => attendanceSelectedIds.includes(id));
+
+                const toggleAll = () => {
+                    if (allSelected) {
+                        setAttendanceSelectedIds([]);
+                        return;
+                    }
+                    setAttendanceSelectedIds(visibleIds);
+                };
+
+                const toggleOne = (id) => {
+                    const numId = Number(id);
+                    setAttendanceSelectedIds((prev) => (
+                        prev.includes(numId) ? prev.filter((item) => item !== numId) : [...prev, numId]
+                    ));
+                };
+
+                const startEdit = (item) => {
+                    setAttendanceEditingId(item.id);
+                    setAttendanceForm({
+                        attendance_date: item.attendance_date || '',
+                        status: item.status || 'present',
+                        check_in: item.check_in || '',
+                        check_out: item.check_out || '',
+                        notes: item.notes || '',
+                    });
+                };
+
+                const resetAttendanceForm = () => {
+                    setAttendanceEditingId(null);
+                    setAttendanceViewing(null);
+                    setAttendanceForm({
+                        attendance_date: new Date().toISOString().slice(0, 10),
+                        status: 'present',
+                        check_in: '',
+                        check_out: '',
+                        notes: '',
+                    });
+                };
+
+                const submitAttendance = async (event) => {
+                    event.preventDefault();
+                    setAttendanceSaving(true);
+                    try {
+                        const payload = {
+                            user_id: employee.id,
+                            attendance_date: attendanceForm.attendance_date,
+                            status: attendanceForm.status,
+                            check_in: attendanceForm.status === 'present' ? (attendanceForm.check_in || null) : null,
+                            check_out: attendanceForm.status === 'present' ? (attendanceForm.check_out || null) : null,
+                            notes: attendanceForm.status === 'leave' ? (attendanceForm.notes || null) : null,
+                        };
+
+                        if (attendanceEditingId) {
+                            await api.put(`/staff/attendance/${attendanceEditingId}`, payload, { headers });
+                            showToast('success', 'Attendance updated successfully.');
+                        } else {
+                            await api.post('/staff/attendance', payload, { headers });
+                            showToast('success', 'Attendance created successfully.');
+                        }
+
+                        await loadAttendance();
+                        resetAttendanceForm();
+                    } catch (error) {
+                        showToast('error', extractMessage(error));
+                    } finally {
+                        setAttendanceSaving(false);
+                    }
+                };
+
+                const deleteAttendance = async (item) => {
+                    const ok = await confirmDelete(`Delete attendance for ${item.attendance_date}?`);
+                    if (!ok) return;
+
+                    try {
+                        await api.delete(`/staff/attendance/${item.id}`, { headers });
+                        await loadAttendance();
+                        showToast('success', 'Attendance deleted successfully.');
+                        if (attendanceEditingId === item.id) {
+                            resetAttendanceForm();
+                        }
+                    } catch (error) {
+                        showToast('error', extractMessage(error));
+                    }
+                };
+
+                const exportSelectedAttendance = () => {
+                    const selected = attendanceItems.filter((item) => attendanceSelectedIds.includes(Number(item.id)));
+                    if (selected.length === 0) {
+                        showToast('error', 'Select at least one attendance row to export.');
+                        return;
+                    }
+
+                    const header = ['ID', 'Name', 'Email', 'Attendance', 'Date', 'Clock In', 'Clock Out', 'Over Time', 'Notes'];
+                    const rows = selected.map((item) => ([
+                        item.id,
+                        employee.name || '',
+                        employee.email || '',
+                        item.status || '',
+                        item.attendance_date || '',
+                        item.check_in || '-',
+                        item.check_out || '-',
+                        item.overtime_label || '-',
+                        item.status === 'leave' ? (item.notes || '-') : '-',
+                    ].map(escapeCsv).join(',')));
+
+                    const csv = [header.join(','), ...rows].join('\n');
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', `attendance_${employee.id}_${new Date().toISOString().slice(0, 10)}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                };
+
                 return (
                     <section className="employee-view-grid">
                         <article className="employee-view-panel">
-                            <h4>Attendance &amp; Leave</h4>
-                            <ul>
-                                <li><strong>At Work:</strong> {atWorkLabel(form.date_of_joining)}</li>
-                                <li><strong>Leave Summary:</strong> Not configured yet</li>
-                                <li><strong>Attendance Summary:</strong> Not configured yet</li>
-                            </ul>
+                            <div className="attendance-head">
+                                <h4>Attendance &amp; Leave Index</h4>
+                                <button type="button" className="btn-mini btn-mini-delete" onClick={exportSelectedAttendance}>Export Selected</button>
+                            </div>
+
+                            <form className="attendance-form-grid" onSubmit={submitAttendance}>
+                                <label>
+                                    Date
+                                    <input
+                                        className="form-input compact"
+                                        type="date"
+                                        value={attendanceForm.attendance_date}
+                                        onChange={(e) => setAttendanceForm((prev) => ({ ...prev, attendance_date: e.target.value }))}
+                                        required
+                                    />
+                                </label>
+                                <label>
+                                    Attendance
+                                    <select
+                                        className="form-input compact"
+                                        value={attendanceForm.status}
+                                        onChange={(e) => setAttendanceForm((prev) => ({ ...prev, status: e.target.value }))}
+                                    >
+                                        <option value="present">Present</option>
+                                        <option value="leave">Leave</option>
+                                        <option value="absent">Absent</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    Clock In
+                                    <input
+                                        className="form-input compact"
+                                        type="time"
+                                        value={attendanceForm.check_in}
+                                        onChange={(e) => setAttendanceForm((prev) => ({ ...prev, check_in: e.target.value }))}
+                                        disabled={attendanceForm.status !== 'present'}
+                                    />
+                                </label>
+                                <label>
+                                    Clock Out
+                                    <input
+                                        className="form-input compact"
+                                        type="time"
+                                        value={attendanceForm.check_out}
+                                        onChange={(e) => setAttendanceForm((prev) => ({ ...prev, check_out: e.target.value }))}
+                                        disabled={attendanceForm.status !== 'present'}
+                                    />
+                                </label>
+                                <label className="attendance-notes-field">
+                                    Notes (for leave)
+                                    <input
+                                        className="form-input compact"
+                                        value={attendanceForm.notes}
+                                        onChange={(e) => setAttendanceForm((prev) => ({ ...prev, notes: e.target.value }))}
+                                        disabled={attendanceForm.status !== 'leave'}
+                                        placeholder="Leave note..."
+                                    />
+                                </label>
+                                <div className="attendance-form-actions">
+                                    <button type="submit" className="btn-mini btn-mini-edit" disabled={attendanceSaving}>
+                                        {attendanceSaving ? 'Saving...' : attendanceEditingId ? 'Update' : 'Add'}
+                                    </button>
+                                    <button type="button" className="btn-mini btn-mini-muted" onClick={resetAttendanceForm}>Reset</button>
+                                </div>
+                            </form>
+
+                            {attendanceLoading ? (
+                                <p className="panel-muted">Loading attendance records...</p>
+                            ) : (
+                                <div className="event-table-wrap">
+                                    <table className="event-table employee-attendance-table">
+                                        <thead>
+                                            <tr>
+                                                <th>
+                                                    <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+                                                </th>
+                                                <th>ID</th>
+                                                <th>Image + Name</th>
+                                                <th>Email</th>
+                                                <th>Attendance</th>
+                                                <th>Date</th>
+                                                <th>Clock In</th>
+                                                <th>Clock Out</th>
+                                                <th>Over Time</th>
+                                                <th>Notes</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {attendanceItems.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan="11" className="text-muted">No attendance record found.</td>
+                                                </tr>
+                                            ) : (
+                                                attendanceItems.map((item) => (
+                                                    <tr key={item.id}>
+                                                        <td>
+                                                            <input type="checkbox" checked={attendanceSelectedIds.includes(Number(item.id))} onChange={() => toggleOne(item.id)} />
+                                                        </td>
+                                                        <td>{item.id}</td>
+                                                        <td>
+                                                            <div className="attendance-employee-cell">
+                                                                {employee.avatar_url ? (
+                                                                    <img src={employee.avatar_url} alt={employee.name} className="attendance-employee-avatar" />
+                                                                ) : (
+                                                                    <div className="attendance-employee-avatar fallback">{initials(employee.name)}</div>
+                                                                )}
+                                                                <span>{employee.name}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td>{employee.email || '-'}</td>
+                                                        <td>
+                                                            <span className={`attendance-status-pill ${item.status}`}>{item.status}</span>
+                                                        </td>
+                                                        <td>{item.attendance_date || '-'}</td>
+                                                        <td>{item.check_in || '-'}</td>
+                                                        <td>{item.check_out || '-'}</td>
+                                                        <td>{item.overtime_label ? formatDuration(item.overtime_minutes) : '-'}</td>
+                                                        <td>{item.status === 'leave' ? (item.notes || '-') : '-'}</td>
+                                                        <td>
+                                                            <div className="employee-actions">
+                                                                <button type="button" className="btn-mini btn-mini-edit" onClick={() => setAttendanceViewing(item)}>View</button>
+                                                                <button type="button" className="btn-mini btn-mini-purple" onClick={() => startEdit(item)}>Edit</button>
+                                                                <button type="button" className="btn-mini btn-mini-delete" onClick={() => deleteAttendance(item)}>Delete</button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+
+                            {attendanceViewing ? (
+                                <div className="attendance-view-card">
+                                    <strong>Attendance Details:</strong>
+                                    <span>ID #{attendanceViewing.id}</span>
+                                    <span>Status: {attendanceViewing.status}</span>
+                                    <span>Date: {attendanceViewing.attendance_date}</span>
+                                    <span>Clock In: {attendanceViewing.check_in || '-'}</span>
+                                    <span>Clock Out: {attendanceViewing.check_out || '-'}</span>
+                                    <span>Over Time: {attendanceViewing.overtime_label ? formatDuration(attendanceViewing.overtime_minutes) : '-'}</span>
+                                    <span>Notes: {attendanceViewing.notes || '-'}</span>
+                                </div>
+                            ) : null}
                         </article>
                     </section>
                 );
@@ -908,6 +1231,8 @@ export default function AdminEmployeesPage({ user, onLogout, headers, showToast 
                 mode={modalMode}
                 departments={departments}
                 designations={designations}
+                headers={headers}
+                showToast={showToast}
                 onClose={() => setSelectedEmployee(null)}
                 onSave={saveEmployee}
             />

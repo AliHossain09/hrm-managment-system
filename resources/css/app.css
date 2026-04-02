@@ -1331,6 +1331,105 @@ body {
     font-size: 0.84rem;
 }
 
+.attendance-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.65rem;
+}
+
+.attendance-head h4 {
+    margin: 0;
+}
+
+.attendance-form-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
+    gap: 0.55rem;
+    margin-bottom: 0.75rem;
+}
+
+.attendance-form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    color: #28426d;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.attendance-notes-field {
+    grid-column: span 2;
+}
+
+.attendance-form-actions {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.4rem;
+}
+
+.attendance-employee-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.attendance-employee-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    object-fit: cover;
+    border: 1px solid #d4e2f6;
+}
+
+.attendance-employee-avatar.fallback {
+    display: grid;
+    place-items: center;
+    background: #d8e6ff;
+    color: #14356b;
+    font-weight: 700;
+}
+
+.attendance-status-pill {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 0.2rem 0.55rem;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.attendance-status-pill.present {
+    background: #16a34a;
+}
+
+.attendance-status-pill.leave {
+    background: #ea580c;
+}
+
+.attendance-status-pill.absent {
+    background: #dc2626;
+}
+
+.employee-attendance-table th,
+.employee-attendance-table td {
+    font-size: 0.82rem;
+}
+
+.attendance-view-card {
+    margin-top: 0.6rem;
+    border: 1px dashed #c8d8f0;
+    border-radius: 0.7rem;
+    padding: 0.55rem 0.7rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem 1rem;
+    color: #36547f;
+    font-size: 0.82rem;
+}
+
 .btn-mini-muted {
     background: #64748b;
 }
@@ -1409,6 +1508,18 @@ body {
     .employee-portal-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    .attendance-form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .attendance-notes-field {
+        grid-column: span 2;
+    }
+
+    .attendance-form-actions {
+        grid-column: span 2;
+    }
 }
 
 @media (max-width: 640px) {
@@ -1418,6 +1529,15 @@ body {
 
     .employee-portal-grid {
         grid-template-columns: 1fr;
+    }
+
+    .attendance-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .attendance-notes-field,
+    .attendance-form-actions {
+        grid-column: span 1;
     }
 }
 

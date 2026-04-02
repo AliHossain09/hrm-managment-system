@@ -7,6 +7,7 @@ use App\Http\Requests\Api\StoreStaffUserRequest;
 use App\Http\Requests\Api\UpdateEmployeeDetailsRequest;
 use App\Http\Requests\Api\UpdateRolePermissionsRequest;
 use App\Http\Requests\Api\UpdateStaffUserRequest;
+use App\Models\AttendanceRecord;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\AuthService;
@@ -14,7 +15,9 @@ use App\Services\StaffService;
 use App\Traits\RespondsWithMessages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 
 class StaffController extends Controller
 {
@@ -164,6 +167,165 @@ class StaffController extends Controller
         ], 'Roles and permissions loaded.');
     }
 
+    public function attendanceIndex(Request $request, AuthService $authService): JsonResponse
+    {
+        /** @var User $currentUser */
+        $currentUser = $request->user();
+        $userId = (int) $request->query('user_id', 0);
+
+        if ($userId <= 0) {
+            return $this->errorResponse('Employee user_id is required.', 422);
+        }
+
+        $targetUser = User::query()->find($userId);
+        if (! $targetUser) {
+            return $this->errorResponse('Employee not found.', 404);
+        }
+
+        if ($currentUser->current_workspace_id && (int) $currentUser->current_workspace_id !== (int) $targetUser->current_workspace_id) {
+            return $this->errorResponse('You cannot view attendance from another workspace.', 403);
+        }
+
+        if (! $authService->canManageUserAccount($currentUser, $targetUser)) {
+            return $this->errorResponse('You cannot view this attendance data.', 403);
+        }
+
+        $records = AttendanceRecord::query()
+            ->where('workspace_id', (int) $targetUser->current_workspace_id)
+            ->where('user_id', (int) $targetUser->id)
+            ->orderByDesc('attendance_date')
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (AttendanceRecord $record): array => $this->presentAttendance($record))
+            ->values();
+
+        return $this->successResponse([
+            'records' => $records,
+        ], 'Attendance records loaded.');
+    }
+
+    public function attendanceStore(Request $request, AuthService $authService): JsonResponse
+    {
+        /** @var User $currentUser */
+        $currentUser = $request->user();
+
+        $validated = $request->validate([
+            'user_id' => ['required', 'integer', 'exists:users,id'],
+            'attendance_date' => ['required', 'date'],
+            'status' => ['required', 'string', Rule::in(['present', 'leave', 'absent'])],
+            'check_in' => ['nullable', 'date_format:H:i'],
+            'check_out' => ['nullable', 'date_format:H:i'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $targetUser = User::query()->findOrFail((int) $validated['user_id']);
+        if ($currentUser->current_workspace_id && (int) $currentUser->current_workspace_id !== (int) $targetUser->current_workspace_id) {
+            return $this->errorResponse('You cannot create attendance for another workspace.', 403);
+        }
+
+        if (! $authService->canManageUserAccount($currentUser, $targetUser)) {
+            return $this->errorResponse('You cannot create attendance for this user.', 403);
+        }
+
+        $workspaceId = (int) $targetUser->current_workspace_id;
+        $exists = AttendanceRecord::query()
+            ->where('workspace_id', $workspaceId)
+            ->where('user_id', (int) $targetUser->id)
+            ->where('attendance_date', $validated['attendance_date'])
+            ->exists();
+
+        if ($exists) {
+            return $this->errorResponse('Attendance already exists for this date.', 422);
+        }
+
+        $record = AttendanceRecord::query()->create([
+            'workspace_id' => $workspaceId,
+            'user_id' => (int) $targetUser->id,
+            'attendance_date' => $validated['attendance_date'],
+            'check_in' => $validated['status'] === 'present' ? ($validated['check_in'] ?? null) : null,
+            'check_out' => $validated['status'] === 'present' ? ($validated['check_out'] ?? null) : null,
+            'status' => $validated['status'],
+            'remarks' => $validated['notes'] ?? null,
+        ]);
+
+        return $this->successResponse([
+            'record' => $this->presentAttendance($record),
+        ], 'Attendance created successfully.', 201);
+    }
+
+    public function attendanceUpdate(Request $request, AttendanceRecord $attendanceRecord, AuthService $authService): JsonResponse
+    {
+        /** @var User $currentUser */
+        $currentUser = $request->user();
+        $targetUser = User::query()->find((int) $attendanceRecord->user_id);
+
+        if (! $targetUser) {
+            return $this->errorResponse('Employee not found.', 404);
+        }
+
+        if ($currentUser->current_workspace_id && (int) $currentUser->current_workspace_id !== (int) $attendanceRecord->workspace_id) {
+            return $this->errorResponse('You cannot update attendance from another workspace.', 403);
+        }
+
+        if (! $authService->canManageUserAccount($currentUser, $targetUser)) {
+            return $this->errorResponse('You cannot update this attendance.', 403);
+        }
+
+        $validated = $request->validate([
+            'attendance_date' => ['required', 'date'],
+            'status' => ['required', 'string', Rule::in(['present', 'leave', 'absent'])],
+            'check_in' => ['nullable', 'date_format:H:i'],
+            'check_out' => ['nullable', 'date_format:H:i'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $exists = AttendanceRecord::query()
+            ->where('workspace_id', (int) $attendanceRecord->workspace_id)
+            ->where('user_id', (int) $attendanceRecord->user_id)
+            ->where('attendance_date', $validated['attendance_date'])
+            ->where('id', '!=', (int) $attendanceRecord->id)
+            ->exists();
+
+        if ($exists) {
+            return $this->errorResponse('Attendance already exists for this date.', 422);
+        }
+
+        $attendanceRecord->update([
+            'attendance_date' => $validated['attendance_date'],
+            'check_in' => $validated['status'] === 'present' ? ($validated['check_in'] ?? null) : null,
+            'check_out' => $validated['status'] === 'present' ? ($validated['check_out'] ?? null) : null,
+            'status' => $validated['status'],
+            'remarks' => $validated['notes'] ?? null,
+        ]);
+
+        return $this->successResponse([
+            'record' => $this->presentAttendance($attendanceRecord->fresh()),
+        ], 'Attendance updated successfully.');
+    }
+
+    public function attendanceDelete(Request $request, AttendanceRecord $attendanceRecord, AuthService $authService): JsonResponse
+    {
+        /** @var User $currentUser */
+        $currentUser = $request->user();
+        $targetUser = User::query()->find((int) $attendanceRecord->user_id);
+
+        if (! $targetUser) {
+            return $this->errorResponse('Employee not found.', 404);
+        }
+
+        if ($currentUser->current_workspace_id && (int) $currentUser->current_workspace_id !== (int) $attendanceRecord->workspace_id) {
+            return $this->errorResponse('You cannot delete attendance from another workspace.', 403);
+        }
+
+        if (! $authService->canManageUserAccount($currentUser, $targetUser)) {
+            return $this->errorResponse('You cannot delete this attendance.', 403);
+        }
+
+        $attendanceRecord->delete();
+
+        return $this->successResponse(null, 'Attendance deleted successfully.');
+    }
+
     public function updateRolePermissions(Role $role, UpdateRolePermissionsRequest $request, StaffService $staffService, AuthService $authService): JsonResponse
     {
         /** @var User $currentUser */
@@ -197,5 +359,31 @@ class StaffController extends Controller
         }
 
         return $roles->filter(fn (array $role): bool => strtolower(trim($role['name'])) === $currentRole);
+    }
+
+    private function presentAttendance(AttendanceRecord $record): array
+    {
+        $overtimeMinutes = 0;
+        if ($record->status === 'present' && $record->check_in && $record->check_out) {
+            $checkIn = Carbon::createFromFormat('H:i:s', $record->check_in);
+            $checkOut = Carbon::createFromFormat('H:i:s', $record->check_out);
+            if ($checkOut->greaterThan($checkIn)) {
+                $worked = $checkOut->diffInMinutes($checkIn);
+                $overtimeMinutes = max(0, $worked - 480);
+            }
+        }
+
+        return [
+            'id' => $record->id,
+            'user_id' => (int) $record->user_id,
+            'attendance_date' => optional($record->attendance_date)->format('Y-m-d'),
+            'status' => strtolower((string) $record->status),
+            'check_in' => $record->check_in ? Carbon::createFromFormat('H:i:s', $record->check_in)->format('H:i') : null,
+            'check_out' => $record->check_out ? Carbon::createFromFormat('H:i:s', $record->check_out)->format('H:i') : null,
+            'overtime_minutes' => $overtimeMinutes,
+            'overtime_label' => $overtimeMinutes > 0 ? sprintf('%02d:%02d', intdiv($overtimeMinutes, 60), $overtimeMinutes % 60) : null,
+            'notes' => $record->remarks,
+            'created_at' => optional($record->created_at)->format('Y-m-d H:i:s'),
+        ];
     }
 }
