@@ -95,6 +95,7 @@ function escapeCsv(value) {
 }
 
 function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, departments, designations }) {
+    const [activeViewTab, setActiveViewTab] = useState('personal');
     const [form, setForm] = useState({
         date_of_birth: '',
         date_of_joining: '',
@@ -119,6 +120,8 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
         if (!open || !employee) {
             return;
         }
+
+        setActiveViewTab('personal');
 
         setForm({
             date_of_birth: employee.date_of_birth || '',
@@ -182,6 +185,166 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
     const userTypeLabel = (employee.user_type || 'permanent').replace('_', ' ');
 
     if (readOnly) {
+        const renderViewTabContent = () => {
+            if (activeViewTab === 'personal') {
+                return (
+                    <section className="employee-view-grid">
+                        <article className="employee-view-panel">
+                            <h4>Employee Details</h4>
+                            <ul>
+                                <li><strong>Date of Birth:</strong> {form.date_of_birth || '-'}</li>
+                                <li><strong>Sex:</strong> {form.sex || '-'}</li>
+                                <li><strong>Blood Group:</strong> {form.blood_group || '-'}</li>
+                                <li><strong>National ID:</strong> {form.national_id_card_number || '-'}</li>
+                                <li><strong>Father Name:</strong> {form.father_name || '-'}</li>
+                                <li><strong>Mother Name:</strong> {form.mother_name || '-'}</li>
+                                <li><strong>Father Phone:</strong> {form.father_phone || '-'}</li>
+                            </ul>
+                            <p className="employee-view-address"><strong>Address:</strong> {form.address || '-'}</p>
+                        </article>
+                    </section>
+                );
+            }
+
+            if (activeViewTab === 'payroll') {
+                return (
+                    <>
+                        <section className="employee-view-grid">
+                            <article className="employee-view-panel">
+                                <h4>Payroll &amp; Finance</h4>
+                                <ul>
+                                    <li><strong>Bank Name:</strong> {form.bank_name || '-'}</li>
+                                    <li><strong>Branch Location:</strong> {form.bank_branch_location || '-'}</li>
+                                    <li><strong>Account Number:</strong> {form.bank_account_number || '-'}</li>
+                                    <li><strong>Basic Salary:</strong> {form.basic_salary || '-'}</li>
+                                </ul>
+                            </article>
+                        </section>
+
+                        <section className="employee-portal-block">
+                            <div className="employee-portal-head">
+                                <h4>Employee self service portal</h4>
+                                <div className="employee-portal-controls">
+                                    <div className="employee-period-switch">
+                                        <button type="button" className="active">Monthly</button>
+                                        <button type="button">Quarterly</button>
+                                        <button type="button">Annually</button>
+                                    </div>
+                                    <span className="employee-date-chip">1 Jan 2023 - 30 Dec 2023</span>
+                                </div>
+                            </div>
+
+                            <div className="employee-portal-grid">
+                                <article className="employee-portal-card">
+                                    <h5>Salary</h5>
+                                    <div className="employee-salary-ring" />
+                                    <p>Net Payable: {netPayable || 0}</p>
+                                </article>
+                                <article className="employee-portal-card">
+                                    <h5>Additions</h5>
+                                    <p>Overtime + Bonuses</p>
+                                    <strong>{additions || 0}</strong>
+                                </article>
+                                <article className="employee-portal-card">
+                                    <h5>Deductions</h5>
+                                    <p>Tax + PF</p>
+                                    <strong>{deductions || 0}</strong>
+                                </article>
+                                <article className="employee-portal-card">
+                                    <h5>View Payslip</h5>
+                                    <p>Month of November</p>
+                                    <strong>{netPayable || 0}</strong>
+                                </article>
+                            </div>
+                        </section>
+
+                        <section className="employee-salary-setup">
+                            <div className="employee-salary-setup-head">
+                                <h4>Salary Profile Setup</h4>
+                                <span className="employee-type-pill">{userTypeLabel}</span>
+                                <button type="button" className="btn-ghost">Edit</button>
+                            </div>
+                            <div className="event-table-wrap">
+                                <table className="event-table employee-salary-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Country</th>
+                                            <th>Earnings</th>
+                                            <th>Additions</th>
+                                            <th>Deductions</th>
+                                            <th>Benefit</th>
+                                            <th>Payable</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Bangladesh</td>
+                                            <td>Gross salary {salary || 0}</td>
+                                            <td>Overtime {Math.round(additions * 0.6)}</td>
+                                            <td>Tax @ 10% {Math.round(deductions * 0.6)}</td>
+                                            <td>Company 8%</td>
+                                            <td>{netPayable || 0}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>-</td>
+                                            <td>Basic salary {salary || 0}</td>
+                                            <td>Bonuses {Math.round(additions * 0.4)}</td>
+                                            <td>PF @ 8% {Math.round(deductions * 0.4)}</td>
+                                            <td>Employee 10%</td>
+                                            <td>{netPayable || 0}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </>
+                );
+            }
+
+            if (activeViewTab === 'organization') {
+                return (
+                    <section className="employee-view-grid">
+                        <article className="employee-view-panel">
+                            <h4>Organization</h4>
+                            <ul>
+                                <li><strong>Department:</strong> {form.department_name || '-'}</li>
+                                <li><strong>Designation:</strong> {form.designation_name || '-'}</li>
+                                <li><strong>Branch:</strong> {form.branch_name || '-'}</li>
+                                <li><strong>Date of Joining:</strong> {form.date_of_joining || '-'}</li>
+                            </ul>
+                        </article>
+                    </section>
+                );
+            }
+
+            if (activeViewTab === 'attendance') {
+                return (
+                    <section className="employee-view-grid">
+                        <article className="employee-view-panel">
+                            <h4>Attendance &amp; Leave</h4>
+                            <ul>
+                                <li><strong>At Work:</strong> {atWorkLabel(form.date_of_joining)}</li>
+                                <li><strong>Leave Summary:</strong> Not configured yet</li>
+                                <li><strong>Attendance Summary:</strong> Not configured yet</li>
+                            </ul>
+                        </article>
+                    </section>
+                );
+            }
+
+            return (
+                <section className="employee-view-grid">
+                    <article className="employee-view-panel">
+                        <h4>Performance</h4>
+                        <ul>
+                            <li><strong>Performance Rating:</strong> Not configured yet</li>
+                            <li><strong>Review Cycle:</strong> Not configured yet</li>
+                        </ul>
+                    </article>
+                </section>
+            );
+        };
+
         return (
             <div className="modal-overlay">
                 <div className="modal-card employee-modal-card employee-view-card">
@@ -225,115 +388,14 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
                     </section>
 
                     <section className="employee-view-tabs">
-                        <button type="button" className="employee-view-tab">Personal</button>
-                        <button type="button" className="employee-view-tab">Organization</button>
-                        <button type="button" className="employee-view-tab active">Attendance &amp; Leave</button>
-                        <button type="button" className="employee-view-tab">Payroll &amp; Finance</button>
-                        <button type="button" className="employee-view-tab">Performance</button>
+                        <button type="button" className={`employee-view-tab ${activeViewTab === 'personal' ? 'active' : ''}`} onClick={() => setActiveViewTab('personal')}>Personal</button>
+                        <button type="button" className={`employee-view-tab ${activeViewTab === 'organization' ? 'active' : ''}`} onClick={() => setActiveViewTab('organization')}>Organization</button>
+                        <button type="button" className={`employee-view-tab ${activeViewTab === 'attendance' ? 'active' : ''}`} onClick={() => setActiveViewTab('attendance')}>Attendance &amp; Leave</button>
+                        <button type="button" className={`employee-view-tab ${activeViewTab === 'payroll' ? 'active' : ''}`} onClick={() => setActiveViewTab('payroll')}>Payroll &amp; Finance</button>
+                        <button type="button" className={`employee-view-tab ${activeViewTab === 'performance' ? 'active' : ''}`} onClick={() => setActiveViewTab('performance')}>Performance</button>
                     </section>
 
-                    <section className="employee-portal-block">
-                        <div className="employee-portal-head">
-                            <h4>Employee self service portal</h4>
-                            <div className="employee-portal-controls">
-                                <div className="employee-period-switch">
-                                    <button type="button" className="active">Monthly</button>
-                                    <button type="button">Quarterly</button>
-                                    <button type="button">Annually</button>
-                                </div>
-                                <span className="employee-date-chip">1 Jan 2023 - 30 Dec 2023</span>
-                            </div>
-                        </div>
-
-                        <div className="employee-portal-grid">
-                            <article className="employee-portal-card">
-                                <h5>Salary</h5>
-                                <div className="employee-salary-ring" />
-                                <p>Net Payable: {netPayable || 0}</p>
-                            </article>
-                            <article className="employee-portal-card">
-                                <h5>Additions</h5>
-                                <p>Overtime + Bonuses</p>
-                                <strong>{additions || 0}</strong>
-                            </article>
-                            <article className="employee-portal-card">
-                                <h5>Deductions</h5>
-                                <p>Tax + PF</p>
-                                <strong>{deductions || 0}</strong>
-                            </article>
-                            <article className="employee-portal-card">
-                                <h5>View Payslip</h5>
-                                <p>Month of November</p>
-                                <strong>{netPayable || 0}</strong>
-                            </article>
-                        </div>
-                    </section>
-
-                    <section className="employee-salary-setup">
-                        <div className="employee-salary-setup-head">
-                            <h4>Salary Profile Setup</h4>
-                            <span className="employee-type-pill">{userTypeLabel}</span>
-                            <button type="button" className="btn-ghost">Edit</button>
-                        </div>
-                        <div className="event-table-wrap">
-                            <table className="event-table employee-salary-table">
-                                <thead>
-                                    <tr>
-                                        <th>Country</th>
-                                        <th>Earnings</th>
-                                        <th>Additions</th>
-                                        <th>Deductions</th>
-                                        <th>Benefit</th>
-                                        <th>Payable</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td>Bangladesh</td>
-                                        <td>Gross salary {salary || 0}</td>
-                                        <td>Overtime {Math.round(additions * 0.6)}</td>
-                                        <td>Tax @ 10% {Math.round(deductions * 0.6)}</td>
-                                        <td>Company 8%</td>
-                                        <td>{netPayable || 0}</td>
-                                    </tr>
-                                    <tr>
-                                        <td>-</td>
-                                        <td>Basic salary {salary || 0}</td>
-                                        <td>Bonuses {Math.round(additions * 0.4)}</td>
-                                        <td>PF @ 8% {Math.round(deductions * 0.4)}</td>
-                                        <td>Employee 10%</td>
-                                        <td>{netPayable || 0}</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </section>
-
-                    <section className="employee-view-grid">
-                        <article className="employee-view-panel">
-                            <h4>Employee Details</h4>
-                            <ul>
-                                <li><strong>Date of Birth:</strong> {form.date_of_birth || '-'}</li>
-                                <li><strong>Sex:</strong> {form.sex || '-'}</li>
-                                <li><strong>Blood Group:</strong> {form.blood_group || '-'}</li>
-                                <li><strong>National ID:</strong> {form.national_id_card_number || '-'}</li>
-                                <li><strong>Father Name:</strong> {form.father_name || '-'}</li>
-                                <li><strong>Mother Name:</strong> {form.mother_name || '-'}</li>
-                                <li><strong>Father Phone:</strong> {form.father_phone || '-'}</li>
-                            </ul>
-                            <p className="employee-view-address"><strong>Address:</strong> {form.address || '-'}</p>
-                        </article>
-
-                        <article className="employee-view-panel">
-                            <h4>Payroll &amp; Finance</h4>
-                            <ul>
-                                <li><strong>Bank Name:</strong> {form.bank_name || '-'}</li>
-                                <li><strong>Branch Location:</strong> {form.bank_branch_location || '-'}</li>
-                                <li><strong>Account Number:</strong> {form.bank_account_number || '-'}</li>
-                                <li><strong>Basic Salary:</strong> {form.basic_salary || '-'}</li>
-                            </ul>
-                        </article>
-                    </section>
+                    {renderViewTabContent()}
                 </div>
             </div>
         );
