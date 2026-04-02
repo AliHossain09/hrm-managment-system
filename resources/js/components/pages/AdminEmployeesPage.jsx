@@ -104,6 +104,24 @@ function formatDuration(minutes) {
     return `${hours}h ${mins}m`;
 }
 
+function timeStringToMinutes(value) {
+    const text = String(value || '').trim();
+    if (!text || !text.includes(':')) return null;
+    const [hourText, minuteText] = text.split(':');
+    const hours = Number(hourText);
+    const minutes = Number(minuteText);
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+    return (hours * 60) + minutes;
+}
+
+function workedMinutesFromRecord(record) {
+    const inMinutes = timeStringToMinutes(record?.check_in);
+    const outMinutes = timeStringToMinutes(record?.check_out);
+    if (inMinutes == null || outMinutes == null) return 0;
+    const diff = outMinutes - inMinutes;
+    return diff > 0 ? diff : 0;
+}
+
 function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, departments, designations, headers, showToast }) {
     const readOnly = mode === 'view';
     const [activeViewTab, setActiveViewTab] = useState('personal');
@@ -229,14 +247,6 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
 
     if (!open || !employee) return null;
 
-    const overviewItems = [
-        { label: 'Department', value: form.department_name || '-' },
-        { label: 'Designation', value: form.designation_name || '-' },
-        { label: 'Branch', value: form.branch_name || '-' },
-        { label: 'Basic Salary', value: form.basic_salary ? `${form.basic_salary}` : '-' },
-        { label: 'At Work', value: atWorkLabel(form.date_of_joining) },
-        { label: 'User Type', value: employee.user_type || '-' },
-    ];
     const salary = Number(form.basic_salary || 0);
     const additions = salary > 0 ? Math.round(salary * 0.25) : 0;
     const deductions = salary > 0 ? Math.round(salary * 0.12) : 0;
@@ -416,6 +426,24 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
 
                     return true;
                 });
+                const totalRecords = filteredAttendanceItems.length;
+                const presentCount = filteredAttendanceItems.filter((item) => item.status === 'present').length;
+                const leaveCount = filteredAttendanceItems.filter((item) => item.status === 'leave').length;
+                const absentCount = filteredAttendanceItems.filter((item) => item.status === 'absent').length;
+                const workedMinutes = filteredAttendanceItems.reduce((sum, item) => sum + workedMinutesFromRecord(item), 0);
+                const overtimeMinutes = filteredAttendanceItems.reduce((sum, item) => sum + Number(item.overtime_minutes || 0), 0);
+
+                const activeYear = attendanceYearFilter || String(new Date().getFullYear());
+                const activeMonth = attendanceMonthFilter || String(new Date().getMonth() + 1).padStart(2, '0');
+                const monthDate = new Date(Number(activeYear), Number(activeMonth) - 1, 1);
+                const monthLabel = monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+                const moveMonth = (step) => {
+                    const current = new Date(Number(activeYear), Number(activeMonth) - 1, 1);
+                    current.setMonth(current.getMonth() + step);
+                    setAttendanceYearFilter(String(current.getFullYear()));
+                    setAttendanceMonthFilter(String(current.getMonth() + 1).padStart(2, '0'));
+                };
 
                 const visibleIds = filteredAttendanceItems.map((item) => Number(item.id));
                 const allSelected = visibleIds.length > 0 && visibleIds.every((id) => attendanceSelectedIds.includes(id));
@@ -539,54 +567,59 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
                 return (
                     <section className="employee-view-grid">
                         <article className="employee-view-panel attendance-panel-full">
-                            <div className="attendance-head">
-                                <h4>Attendance &amp; Leave Index</h4>
-                                <div className="attendance-head-actions">
-                                    <label className="attendance-filter-label">
-                                        Year
-                                        <select className="form-input compact" value={attendanceYearFilter} onChange={(e) => setAttendanceYearFilter(e.target.value)}>
-                                            <option value="">All</option>
-                                            {attendanceYearOptions.map((year) => (
-                                                <option key={year} value={year}>
-                                                    {year}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </label>
-                                    <label className="attendance-filter-label">
-                                        Month
-                                        <select className="form-input compact" value={attendanceMonthFilter} onChange={(e) => setAttendanceMonthFilter(e.target.value)}>
-                                            <option value="">All</option>
-                                            <option value="01">Jan</option>
-                                            <option value="02">Feb</option>
-                                            <option value="03">Mar</option>
-                                            <option value="04">Apr</option>
-                                            <option value="05">May</option>
-                                            <option value="06">Jun</option>
-                                            <option value="07">Jul</option>
-                                            <option value="08">Aug</option>
-                                            <option value="09">Sep</option>
-                                            <option value="10">Oct</option>
-                                            <option value="11">Nov</option>
-                                            <option value="12">Dec</option>
-                                        </select>
-                                    </label>
-                                    <label className="attendance-filter-label">
-                                        Day
-                                        <select className="form-input compact" value={attendanceDayFilter} onChange={(e) => setAttendanceDayFilter(e.target.value)}>
-                                            <option value="">All</option>
-                                            {Array.from({ length: 31 }, (_, index) => {
-                                                const value = String(index + 1);
-                                                return (
-                                                    <option key={value} value={value}>
-                                                        {value}
-                                                    </option>
-                                                );
-                                            })}
-                                        </select>
-                                    </label>
-                                    <button type="button" className="btn-mini btn-mini-delete" onClick={exportSelectedAttendance}>Export Selected</button>
+                            <div className="attendance-month-toolbar">
+                                <div>
+                                    <h4 className="attendance-month-title">{monthLabel}</h4>
+                                    <div className="attendance-mini-tabs">
+                                        <button type="button" className="attendance-mini-tab active">Attendance</button>
+                                        <button type="button" className="attendance-mini-tab">Leaves ({leaveCount})</button>
+                                        <button type="button" className="attendance-mini-tab">View Job Card</button>
+                                    </div>
                                 </div>
+                                <div className="attendance-month-actions">
+                                    <button type="button" className="btn-ghost" onClick={() => moveMonth(-1)}>&larr;</button>
+                                    <button type="button" className="btn-ghost" onClick={() => moveMonth(1)}>&rarr;</button>
+                                    <span className="employee-date-chip">Monthly</span>
+                                    <button
+                                        type="button"
+                                        className="btn-ghost"
+                                        onClick={() => setAttendanceForm((prev) => ({ ...prev, attendance_date: new Date().toISOString().slice(0, 10) }))}
+                                    >
+                                        + New Request
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="attendance-summary-grid">
+                                <article className="attendance-summary-card">
+                                    <h5>Total Records</h5>
+                                    <strong>{totalRecords}</strong>
+                                </article>
+                                <article className="attendance-summary-card">
+                                    <h5>Present</h5>
+                                    <strong>{presentCount}</strong>
+                                </article>
+                                <article className="attendance-summary-card">
+                                    <h5>Leave</h5>
+                                    <strong>{leaveCount}</strong>
+                                </article>
+                                <article className="attendance-summary-card">
+                                    <h5>Absent</h5>
+                                    <strong>{absentCount}</strong>
+                                </article>
+                                <article className="attendance-summary-card">
+                                    <h5>Worked</h5>
+                                    <strong>{formatDuration(workedMinutes)}</strong>
+                                </article>
+                                <article className="attendance-summary-card">
+                                    <h5>Approved OT</h5>
+                                    <strong>{formatDuration(overtimeMinutes)}</strong>
+                                </article>
+                            </div>
+
+                            <div className="attendance-head">
+                                <div />
+                                <button type="button" className="btn-mini btn-mini-delete" onClick={exportSelectedAttendance}>Export Selected</button>
                             </div>
 
                             <form className="attendance-form-grid" onSubmit={submitAttendance}>
@@ -779,15 +812,6 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
                                 <span>Joined: {form.date_of_joining || '-'}</span>
                             </div>
                         </div>
-                    </section>
-
-                    <section className="employee-view-overview">
-                        {overviewItems.map((item) => (
-                            <article key={item.label} className="employee-view-tile">
-                                <p>{item.label}</p>
-                                <h4>{item.value}</h4>
-                            </article>
-                        ))}
                     </section>
 
                     <section className="employee-view-tabs">
