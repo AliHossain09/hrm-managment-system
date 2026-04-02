@@ -1345,19 +1345,17 @@ body {
 }
 
 .attendance-head-actions {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(220px, 340px) auto;
     align-items: center;
     gap: 0.5rem;
-    flex-wrap: nowrap;
-    white-space: nowrap;
     flex: 0 1 auto;
 }
 
 .attendance-search-input {
-    width: 320px;
-    max-width: 42vw;
-    min-width: 260px;
-    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
 }
 
 .attendance-filter-btn {
@@ -1479,12 +1477,17 @@ body {
     font-size: 0.82rem;
 }
 
+.employee-attendance-table {
+    table-layout: auto;
+}
+
 .employee-attendance-table thead th:last-child,
 .employee-attendance-table tbody td:last-child {
     width: 1%;
     text-align: right;
-    white-space: nowrap;
-    padding-right: 0.55rem;
+    white-space: nowrap !important;
+    padding-right: 0.4rem;
+    padding-left: 0.35rem;
 }
 
 .employee-attendance-table .employee-actions {
@@ -1625,6 +1628,10 @@ body {
         width: 100%;
         min-width: 100%;
         max-width: 100%;
+    }
+
+    .attendance-head-actions {
+        grid-template-columns: 1fr;
     }
 
     .attendance-filter-box {
