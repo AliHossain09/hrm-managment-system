@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import AppShell from './components/layout/AppShell.jsx';
 import AdminDashboard from './components/pages/AdminDashboard.jsx';
 import AdminEmployeesPage from './components/pages/AdminEmployeesPage.jsx';
+import AdminEmployeeAttendancePage from './components/pages/AdminEmployeeAttendancePage.jsx';
 import AdminHrmDepartmentsPage from './components/pages/AdminHrmDepartmentsPage.jsx';
 import AdminHrmDesignationsPage from './components/pages/AdminHrmDesignationsPage.jsx';
 import AdminHrmPartTimeHoursPage from './components/pages/AdminHrmPartTimeHoursPage.jsx';
@@ -703,6 +704,13 @@ export default function ReactApp() {
                     }
                 />
                 <Route
+                    path="/admin/hrm/employee-attendance"
+                    element={
+                        <ProtectedRoute user={user} role="admin">
+                            <AdminEmployeeAttendancePage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} />
+                        </ProtectedRoute>
+                    }
+                />                <Route
                     path="/admin/hrm/user-roles"
                     element={
                         <ProtectedRoute user={user} role="admin">
@@ -779,6 +787,7 @@ export default function ReactApp() {
         </>
     );
 }
+
 
 
 

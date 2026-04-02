@@ -105,6 +105,7 @@ function formatDuration(minutes) {
 }
 
 function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, departments, designations, headers, showToast }) {
+    const readOnly = mode === 'view';
     const [activeViewTab, setActiveViewTab] = useState('personal');
     const [attendanceItems, setAttendanceItems] = useState([]);
     const [attendanceLoading, setAttendanceLoading] = useState(false);
@@ -112,6 +113,9 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
     const [attendanceSelectedIds, setAttendanceSelectedIds] = useState([]);
     const [attendanceEditingId, setAttendanceEditingId] = useState(null);
     const [attendanceViewing, setAttendanceViewing] = useState(null);
+    const [attendanceYearFilter, setAttendanceYearFilter] = useState('');
+    const [attendanceMonthFilter, setAttendanceMonthFilter] = useState('');
+    const [attendanceDayFilter, setAttendanceDayFilter] = useState('');
     const [attendanceForm, setAttendanceForm] = useState({
         attendance_date: '',
         status: 'present',
@@ -148,6 +152,9 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
         setAttendanceSelectedIds([]);
         setAttendanceEditingId(null);
         setAttendanceViewing(null);
+        setAttendanceYearFilter('');
+        setAttendanceMonthFilter('');
+        setAttendanceDayFilter('');
         setAttendanceForm({
             attendance_date: new Date().toISOString().slice(0, 10),
             status: 'present',
@@ -197,8 +204,6 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
         if (!open || !employee?.id || !readOnly || activeViewTab !== 'attendance') return;
         loadAttendance();
     }, [open, employee?.id, activeViewTab, readOnly]);
-
-    const readOnly = mode === 'view';
 
     const departmentOptions = useMemo(() => {
         const list = departments || [];
@@ -382,7 +387,37 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
             }
 
             if (activeViewTab === 'attendance') {
-                const visibleIds = attendanceItems.map((item) => Number(item.id));
+                const attendanceYearOptions = Array.from(
+                    new Set(
+                        attendanceItems
+                            .map((item) => String(item.attendance_date || '').split('-')[0])
+                            .filter((year) => year),
+                    ),
+                ).sort((a, b) => Number(b) - Number(a));
+
+                const filteredAttendanceItems = attendanceItems.filter((item) => {
+                    const date = String(item.attendance_date || '');
+                    const parts = date.split('-');
+                    const year = parts.length === 3 ? parts[0] : '';
+                    const month = parts.length === 3 ? parts[1] : '';
+                    const day = parts.length === 3 ? String(Number(parts[2])) : '';
+
+                    if (attendanceYearFilter && year !== attendanceYearFilter) {
+                        return false;
+                    }
+
+                    if (attendanceMonthFilter && month !== attendanceMonthFilter) {
+                        return false;
+                    }
+
+                    if (attendanceDayFilter && day !== attendanceDayFilter) {
+                        return false;
+                    }
+
+                    return true;
+                });
+
+                const visibleIds = filteredAttendanceItems.map((item) => Number(item.id));
                 const allSelected = visibleIds.length > 0 && visibleIds.every((id) => attendanceSelectedIds.includes(id));
 
                 const toggleAll = () => {
@@ -503,10 +538,55 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
 
                 return (
                     <section className="employee-view-grid">
-                        <article className="employee-view-panel">
+                        <article className="employee-view-panel attendance-panel-full">
                             <div className="attendance-head">
                                 <h4>Attendance &amp; Leave Index</h4>
-                                <button type="button" className="btn-mini btn-mini-delete" onClick={exportSelectedAttendance}>Export Selected</button>
+                                <div className="attendance-head-actions">
+                                    <label className="attendance-filter-label">
+                                        Year
+                                        <select className="form-input compact" value={attendanceYearFilter} onChange={(e) => setAttendanceYearFilter(e.target.value)}>
+                                            <option value="">All</option>
+                                            {attendanceYearOptions.map((year) => (
+                                                <option key={year} value={year}>
+                                                    {year}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    <label className="attendance-filter-label">
+                                        Month
+                                        <select className="form-input compact" value={attendanceMonthFilter} onChange={(e) => setAttendanceMonthFilter(e.target.value)}>
+                                            <option value="">All</option>
+                                            <option value="01">Jan</option>
+                                            <option value="02">Feb</option>
+                                            <option value="03">Mar</option>
+                                            <option value="04">Apr</option>
+                                            <option value="05">May</option>
+                                            <option value="06">Jun</option>
+                                            <option value="07">Jul</option>
+                                            <option value="08">Aug</option>
+                                            <option value="09">Sep</option>
+                                            <option value="10">Oct</option>
+                                            <option value="11">Nov</option>
+                                            <option value="12">Dec</option>
+                                        </select>
+                                    </label>
+                                    <label className="attendance-filter-label">
+                                        Day
+                                        <select className="form-input compact" value={attendanceDayFilter} onChange={(e) => setAttendanceDayFilter(e.target.value)}>
+                                            <option value="">All</option>
+                                            {Array.from({ length: 31 }, (_, index) => {
+                                                const value = String(index + 1);
+                                                return (
+                                                    <option key={value} value={value}>
+                                                        {value}
+                                                    </option>
+                                                );
+                                            })}
+                                        </select>
+                                    </label>
+                                    <button type="button" className="btn-mini btn-mini-delete" onClick={exportSelectedAttendance}>Export Selected</button>
+                                </div>
                             </div>
 
                             <form className="attendance-form-grid" onSubmit={submitAttendance}>
@@ -593,12 +673,12 @@ function EmployeeDetailsModal({ open, employee, busy, mode, onClose, onSave, dep
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {attendanceItems.length === 0 ? (
+                                            {filteredAttendanceItems.length === 0 ? (
                                                 <tr>
                                                     <td colSpan="11" className="text-muted">No attendance record found.</td>
                                                 </tr>
                                             ) : (
-                                                attendanceItems.map((item) => (
+                                                filteredAttendanceItems.map((item) => (
                                                     <tr key={item.id}>
                                                         <td>
                                                             <input type="checkbox" checked={attendanceSelectedIds.includes(Number(item.id))} onChange={() => toggleOne(item.id)} />

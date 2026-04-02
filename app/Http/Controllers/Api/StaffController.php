@@ -173,31 +173,52 @@ class StaffController extends Controller
         $currentUser = $request->user();
         $userId = (int) $request->query('user_id', 0);
 
-        if ($userId <= 0) {
-            return $this->errorResponse('Employee user_id is required.', 422);
-        }
+        if ($userId > 0) {
+            $targetUser = User::query()->find($userId);
+            if (! $targetUser) {
+                return $this->errorResponse('Employee not found.', 404);
+            }
 
-        $targetUser = User::query()->find($userId);
-        if (! $targetUser) {
-            return $this->errorResponse('Employee not found.', 404);
-        }
+            if ($currentUser->current_workspace_id && (int) $currentUser->current_workspace_id !== (int) $targetUser->current_workspace_id) {
+                return $this->errorResponse('You cannot view attendance from another workspace.', 403);
+            }
 
-        if ($currentUser->current_workspace_id && (int) $currentUser->current_workspace_id !== (int) $targetUser->current_workspace_id) {
-            return $this->errorResponse('You cannot view attendance from another workspace.', 403);
-        }
+            if (! $authService->canManageUserAccount($currentUser, $targetUser)) {
+                return $this->errorResponse('You cannot view this attendance data.', 403);
+            }
 
-        if (! $authService->canManageUserAccount($currentUser, $targetUser)) {
-            return $this->errorResponse('You cannot view this attendance data.', 403);
-        }
+            $records = AttendanceRecord::query()
+                ->with('user:id,name,email,avatar,current_workspace_id')
+                ->where('workspace_id', (int) $targetUser->current_workspace_id)
+                ->where('user_id', (int) $targetUser->id)
+                ->orderByDesc('attendance_date')
+                ->orderByDesc('id')
+                ->get()
+                ->map(fn (AttendanceRecord $record): array => $this->presentAttendance($record))
+                ->values();
+        } else {
+            $workspaceId = (int) ($currentUser->current_workspace_id ?? 0);
+            if ($workspaceId <= 0) {
+                return $this->errorResponse('Workspace not found for this user.', 422);
+            }
 
-        $records = AttendanceRecord::query()
-            ->where('workspace_id', (int) $targetUser->current_workspace_id)
-            ->where('user_id', (int) $targetUser->id)
-            ->orderByDesc('attendance_date')
-            ->orderByDesc('id')
-            ->get()
-            ->map(fn (AttendanceRecord $record): array => $this->presentAttendance($record))
-            ->values();
+            $records = AttendanceRecord::query()
+                ->with('user:id,name,email,avatar,current_workspace_id')
+                ->where('workspace_id', $workspaceId)
+                ->orderByDesc('attendance_date')
+                ->orderByDesc('id')
+                ->get()
+                ->filter(function (AttendanceRecord $record) use ($currentUser, $authService): bool {
+                    $targetUser = $record->user;
+                    if (! $targetUser) {
+                        return false;
+                    }
+
+                    return $authService->canManageUserAccount($currentUser, $targetUser);
+                })
+                ->map(fn (AttendanceRecord $record): array => $this->presentAttendance($record))
+                ->values();
+        }
 
         return $this->successResponse([
             'records' => $records,
@@ -249,7 +270,7 @@ class StaffController extends Controller
         ]);
 
         return $this->successResponse([
-            'record' => $this->presentAttendance($record),
+            'record' => $this->presentAttendance($record->load('user:id,name,email,avatar,current_workspace_id')),
         ], 'Attendance created successfully.', 201);
     }
 
@@ -299,7 +320,7 @@ class StaffController extends Controller
         ]);
 
         return $this->successResponse([
-            'record' => $this->presentAttendance($attendanceRecord->fresh()),
+            'record' => $this->presentAttendance($attendanceRecord->fresh()->load('user:id,name,email,avatar,current_workspace_id')),
         ], 'Attendance updated successfully.');
     }
 
@@ -373,9 +394,14 @@ class StaffController extends Controller
             }
         }
 
+        $user = $record->relationLoaded('user') ? $record->user : $record->user()->first();
+
         return [
             'id' => $record->id,
             'user_id' => (int) $record->user_id,
+            'user_name' => $user?->name,
+            'user_email' => $user?->email,
+            'user_avatar_url' => $user?->avatar ? asset($user->avatar) : null,
             'attendance_date' => optional($record->attendance_date)->format('Y-m-d'),
             'status' => strtolower((string) $record->status),
             'check_in' => $record->check_in ? Carbon::createFromFormat('H:i:s', $record->check_in)->format('H:i') : null,

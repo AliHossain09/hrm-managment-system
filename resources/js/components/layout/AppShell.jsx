@@ -57,6 +57,9 @@ function SideNavAdmin({ isMasterAdmin }) {
                     <NavLink to="/admin/hrm/employees" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
                         Employee
                     </NavLink>
+                    <NavLink to="/admin/hrm/employee-attendance" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
+                        Employee Attendance
+                    </NavLink>
                     <NavLink to="/admin/hrm/user-roles" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
                         User Role
                     </NavLink>
@@ -138,3 +141,4 @@ export default function AppShell({ user, onLogout, children, admin = false, owne
         </div>
     );
 }
+
