@@ -1,6 +1,54 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 
+function NotificationButton({ notifications = [], unreadCount = 0, onMarkAllRead, onMarkRead }) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <div className="topbar-notify">
+            <button
+                type="button"
+                className="topbar-notify-btn"
+                onClick={() => setOpen((current) => !current)}
+                aria-expanded={open}
+                aria-label="Notifications"
+            >
+                <span className="topbar-notify-icon">!</span>
+                {unreadCount > 0 ? <span className="topbar-notify-badge">{unreadCount}</span> : null}
+            </button>
+
+            {open ? (
+                <div className="topbar-notify-panel">
+                    <div className="topbar-notify-head">
+                        <strong>Notifications</strong>
+                        <button type="button" className="btn-ghost small" onClick={onMarkAllRead}>
+                            Read All
+                        </button>
+                    </div>
+
+                    <div className="topbar-notify-list">
+                        {notifications.length === 0 ? (
+                            <p className="text-muted">No notification found.</p>
+                        ) : (
+                            notifications.map((item) => (
+                                <button
+                                    key={item.id}
+                                    type="button"
+                                    className={`topbar-notify-item ${item.is_read ? 'read' : 'unread'}`}
+                                    onClick={() => onMarkRead ? onMarkRead(item.id) : null}
+                                >
+                                    <strong>{item.title}</strong>
+                                    <p>{item.message}</p>
+                                </button>
+                            ))
+                        )}
+                    </div>
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
 function SideNavOwner() {
     return (
         <nav>
@@ -170,7 +218,17 @@ function SideNavEmployee() {
     );
 }
 
-export default function AppShell({ user, onLogout, children, admin = false, owner = false }) {
+export default function AppShell({
+    user,
+    onLogout,
+    children,
+    admin = false,
+    owner = false,
+    notifications = [],
+    unreadNotificationsCount = 0,
+    onMarkAllNotificationsRead = null,
+    onMarkNotificationRead = null,
+}) {
     const accountLevel = String(user?.account_level || '').toLowerCase();
     const isSuperAdmin = accountLevel === 'super_admin' || accountLevel === 'super admin';
     const isMasterAdmin = accountLevel === 'master_admin' || accountLevel === 'master admin';
@@ -189,9 +247,17 @@ export default function AppShell({ user, onLogout, children, admin = false, owne
             <main className="main-content">
                 <header className="topbar">
                     <div className="user-chip">{user?.name}</div>
-                    <button className="btn-ghost" type="button" onClick={onLogout}>
-                        Logout
-                    </button>
+                    <div className="topbar-actions">
+                        <NotificationButton
+                            notifications={notifications}
+                            unreadCount={unreadNotificationsCount}
+                            onMarkAllRead={onMarkAllNotificationsRead || (() => {})}
+                            onMarkRead={onMarkNotificationRead || (() => {})}
+                        />
+                        <button className="btn-ghost" type="button" onClick={onLogout}>
+                            Logout
+                        </button>
+                    </div>
                 </header>
                 {children}
             </main>

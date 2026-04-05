@@ -59,6 +59,38 @@ export default function AdminDashboard({ user, onLogout, headers }) {
         loadEvents();
     }, [headers, isMasterAdmin]);
 
+    const markAllRead = async () => {
+        try {
+            await api.post('/notifications/read-all', {}, { headers });
+            if (isMasterAdmin) {
+                const { data } = await api.get('/admin/leave-requests', { headers });
+                setLeavePortal({
+                    pending_count: data?.data?.pending_count || 0,
+                    notifications: data?.data?.notifications || [],
+                    recent_requests: data?.data?.recent_requests || [],
+                });
+            }
+        } catch {
+            // keep dashboard resilient
+        }
+    };
+
+    const markOneRead = async (notificationId) => {
+        try {
+            await api.post(`/notifications/${notificationId}/read`, {}, { headers });
+            if (isMasterAdmin) {
+                const { data } = await api.get('/admin/leave-requests', { headers });
+                setLeavePortal({
+                    pending_count: data?.data?.pending_count || 0,
+                    notifications: data?.data?.notifications || [],
+                    recent_requests: data?.data?.recent_requests || [],
+                });
+            }
+        } catch {
+            // keep dashboard resilient
+        }
+    };
+
     const calendarEvents = React.useMemo(() => {
         return events.map((item) => ({
             id: String(item.id),
@@ -70,15 +102,19 @@ export default function AdminDashboard({ user, onLogout, headers }) {
     }, [events]);
 
     return (
-        <AppShell user={user} onLogout={onLogout} admin>
+        <AppShell
+            user={user}
+            onLogout={onLogout}
+            admin
+            notifications={leavePortal.notifications}
+            unreadNotificationsCount={leavePortal.notifications.filter((item) => !item.is_read).length}
+            onMarkAllNotificationsRead={markAllRead}
+            onMarkNotificationRead={markOneRead}
+        >
             <h1 className="dashboard-title">Dashboard (Admin)</h1>
             <section className="notice-row">
-                <div className="badge-orange">Notify</div>
-                <div className="notice-text">
-                    {isMasterAdmin
-                        ? (leavePortal.notifications[0]?.message || `You have ${leavePortal.pending_count} pending leave request(s).`)
-                        : `Welcome back ${user?.name}`}
-                </div>
+                <div className="badge-orange">Notice</div>
+                <div className="notice-text">{`Welcome back ${user?.name}`}</div>
                 <Link to={isMasterAdmin ? '/admin/leaves' : '/events'} className="btn-primary small">
                     {isMasterAdmin ? 'Review Leaves' : 'View All'}
                 </Link>

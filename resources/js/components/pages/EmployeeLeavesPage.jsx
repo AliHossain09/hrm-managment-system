@@ -103,8 +103,24 @@ export default function EmployeeLeavesPage({ user, onLogout, headers, showToast 
         }
     };
 
+    const markOneRead = async (notificationId) => {
+        try {
+            await api.post(`/notifications/${notificationId}/read`, {}, { headers });
+            await loadPortal();
+        } catch (error) {
+            showToast('error', extractMessage(error));
+        }
+    };
+
     return (
-        <AppShell user={user} onLogout={onLogout}>
+        <AppShell
+            user={user}
+            onLogout={onLogout}
+            notifications={portal.notifications}
+            unreadNotificationsCount={portal.unread_notifications_count}
+            onMarkAllNotificationsRead={markAllRead}
+            onMarkNotificationRead={markOneRead}
+        >
             <h1 className="dashboard-title">Leave Apply & Status</h1>
 
             <section className="notice-row leave-notice-row">
@@ -205,12 +221,13 @@ export default function EmployeeLeavesPage({ user, onLogout, headers, showToast 
                                     <th>Days</th>
                                     <th>Status</th>
                                     <th>Reason</th>
+                                    <th>Admin Note</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {portal.leave_requests.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="text-muted">No leave request found.</td>
+                                        <td colSpan="7" className="text-muted">No leave request found.</td>
                                     </tr>
                                 ) : (
                                     portal.leave_requests.map((item) => (
@@ -221,6 +238,7 @@ export default function EmployeeLeavesPage({ user, onLogout, headers, showToast 
                                             <td>{item.requested_days}</td>
                                             <td><span className={`leave-status-pill ${item.status}`}>{item.status}</span></td>
                                             <td>{item.reason || '-'}</td>
+                                            <td>{item.review_note || '-'}</td>
                                         </tr>
                                     ))
                                 )}

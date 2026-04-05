@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 import AppShell from '../layout/AppShell.jsx';
 import { confirmDelete } from '../../utils/sweetAlert.js';
 
@@ -116,10 +117,30 @@ export default function AdminLeaveTypesPage({ user, onLogout, headers, showToast
     };
 
     const reviewRequest = async (item, status) => {
+        let reviewNote = '';
+
+        if (status === 'rejected') {
+            const result = await Swal.fire({
+                title: 'Reject Leave Request',
+                input: 'textarea',
+                inputLabel: 'Reject reason',
+                inputPlaceholder: 'Write reject reason for employee...',
+                inputAttributes: { 'aria-label': 'Reject reason' },
+                showCancelButton: true,
+                confirmButtonText: 'Reject',
+                confirmButtonColor: '#dc2626',
+                cancelButtonText: 'Cancel',
+                inputValidator: (value) => (!String(value || '').trim() ? 'Reject reason is required.' : undefined),
+            });
+
+            if (!result.isConfirmed) return;
+            reviewNote = String(result.value || '').trim();
+        }
+
         setReviewingId(item.id);
 
         try {
-            await api.put(`/admin/leave-requests/${item.id}`, { status }, { headers });
+            await api.put(`/admin/leave-requests/${item.id}`, { status, review_note: reviewNote }, { headers });
             await loadLeaveTypes();
             showToast('success', `Leave request ${status} successfully.`);
         } catch (error) {
@@ -233,13 +254,14 @@ export default function AdminLeaveTypesPage({ user, onLogout, headers, showToast
                                     <th>Days</th>
                                     <th>Status</th>
                                     <th>Reason</th>
+                                    <th>Admin Note</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {leaveRequests.length === 0 ? (
                                     <tr>
-                                        <td colSpan="8" className="text-muted">No leave request found.</td>
+                                        <td colSpan="9" className="text-muted">No leave request found.</td>
                                     </tr>
                                 ) : (
                                     leaveRequests.map((item) => (
@@ -251,6 +273,7 @@ export default function AdminLeaveTypesPage({ user, onLogout, headers, showToast
                                             <td>{item.requested_days}</td>
                                             <td><span className={`leave-status-pill ${item.status}`}>{item.status}</span></td>
                                             <td>{item.reason || '-'}</td>
+                                            <td>{item.review_note || '-'}</td>
                                             <td className="event-action-cell">
                                                 {item.status === 'pending' ? (
                                                     <>

@@ -53,6 +53,34 @@ export default function EmployeeDashboard({ user, onLogout, headers }) {
         loadEvents();
     }, [headers]);
 
+    const markAllRead = async () => {
+        try {
+            await api.post('/notifications/read-all', {}, { headers });
+            const { data } = await api.get('/employee/leaves', { headers });
+            setLeavePortal({
+                notifications: data?.data?.notifications || [],
+                unread_notifications_count: data?.data?.unread_notifications_count || 0,
+                leave_types: data?.data?.leave_types || [],
+            });
+        } catch {
+            // keep dashboard resilient
+        }
+    };
+
+    const markOneRead = async (notificationId) => {
+        try {
+            await api.post(`/notifications/${notificationId}/read`, {}, { headers });
+            const { data } = await api.get('/employee/leaves', { headers });
+            setLeavePortal({
+                notifications: data?.data?.notifications || [],
+                unread_notifications_count: data?.data?.unread_notifications_count || 0,
+                leave_types: data?.data?.leave_types || [],
+            });
+        } catch {
+            // keep dashboard resilient
+        }
+    };
+
     const calendarEvents = React.useMemo(() => {
         return events.map((item) => ({
             id: String(item.id),
@@ -64,13 +92,18 @@ export default function EmployeeDashboard({ user, onLogout, headers }) {
     }, [events]);
 
     return (
-        <AppShell user={user} onLogout={onLogout}>
+        <AppShell
+            user={user}
+            onLogout={onLogout}
+            notifications={leavePortal.notifications}
+            unreadNotificationsCount={leavePortal.unread_notifications_count}
+            onMarkAllNotificationsRead={markAllRead}
+            onMarkNotificationRead={markOneRead}
+        >
             <h1 className="dashboard-title">Dashboard (Employee)</h1>
             <section className="notice-row">
-                <div className="badge-orange">Notify</div>
-                <div className="notice-text">
-                    {leavePortal.notifications[0]?.message || `Hello ${user?.name}. You have ${leavePortal.unread_notifications_count} unread notification(s).`}
-                </div>
+                <div className="badge-orange">Notice</div>
+                <div className="notice-text">{`Hello ${user?.name}`}</div>
                 <Link to="/employee/leaves" className="btn-primary small">View Leave</Link>
             </section>
             <section className="grid-two">

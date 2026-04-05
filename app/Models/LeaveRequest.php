@@ -16,6 +16,7 @@ class LeaveRequest extends Model
         'requested_days',
         'status',
         'reason',
+        'review_note',
         'approved_by',
         'approved_at',
     ];

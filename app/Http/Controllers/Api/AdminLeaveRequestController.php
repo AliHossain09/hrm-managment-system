@@ -50,9 +50,16 @@ class AdminLeaveRequestController extends Controller
 
         $validated = $request->validate([
             'status' => ['required', 'string', Rule::in(['approved', 'rejected'])],
+            'review_note' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        $updated = $leaveManagementService->reviewLeaveRequest($user, $leaveRequest, $validated['status']);
+        if (($validated['status'] ?? null) === 'rejected' && trim((string) ($validated['review_note'] ?? '')) === '') {
+            return $this->errorResponse('Reject reason is required.', 422, [
+                'review_note' => ['Reject reason is required.'],
+            ]);
+        }
+
+        $updated = $leaveManagementService->reviewLeaveRequest($user, $leaveRequest, $validated['status'], $validated['review_note'] ?? null);
 
         return $this->successResponse([
             'request' => $leaveManagementService->presentLeaveRequest($updated),

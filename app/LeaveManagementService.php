@@ -8,9 +8,9 @@ use App\Models\LeaveType;
 use App\Models\User;
 use App\Notifications\LeaveRequestStatusNotification;
 use App\Notifications\LeaveRequestSubmittedNotification;
-use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -236,7 +236,7 @@ class LeaveManagementService
         return $leaveRequest->fresh(['leaveType', 'user', 'approver']);
     }
 
-    public function reviewLeaveRequest(User $admin, LeaveRequest $leaveRequest, string $status): LeaveRequest
+    public function reviewLeaveRequest(User $admin, LeaveRequest $leaveRequest, string $status, ?string $reviewNote = null): LeaveRequest
     {
         if ($leaveRequest->status !== 'pending') {
             throw ValidationException::withMessages([
@@ -253,7 +253,7 @@ class LeaveManagementService
             ]);
         }
 
-        DB::transaction(function () use ($admin, $leaveRequest, $employee, $status): void {
+        DB::transaction(function () use ($admin, $leaveRequest, $employee, $status, $reviewNote): void {
             if ($status === 'approved') {
                 $year = (int) $leaveRequest->from_date->format('Y');
                 $balance = $this->ensureLeaveBalancesForUser($employee, $year)
@@ -290,6 +290,7 @@ class LeaveManagementService
 
             $leaveRequest->update([
                 'status' => $status,
+                'review_note' => $reviewNote ? trim($reviewNote) : null,
                 'approved_by' => $admin->id,
                 'approved_at' => now(),
             ]);
@@ -315,6 +316,7 @@ class LeaveManagementService
             'requested_days' => (int) $request->requested_days,
             'status' => (string) $request->status,
             'reason' => $request->reason,
+            'review_note' => $request->review_note,
             'approved_by_name' => $request->approver?->name,
             'approved_at' => optional($request->approved_at)->format('Y-m-d H:i:s'),
             'created_at' => optional($request->created_at)->format('Y-m-d H:i:s'),
@@ -355,6 +357,7 @@ class LeaveManagementService
             'title' => $data['title'] ?? 'Notification',
             'message' => $data['message'] ?? '',
             'status' => $data['status'] ?? null,
+            'review_note' => $data['review_note'] ?? null,
             'leave_request_id' => $data['leave_request_id'] ?? null,
             'created_at' => optional($notification->created_at)->format('Y-m-d H:i:s'),
             'read_at' => optional($notification->read_at)->format('Y-m-d H:i:s'),

@@ -24,13 +24,20 @@ class LeaveRequestStatusNotification extends Notification
         $status = (string) $this->leaveRequest->status;
         $label = ucfirst($status);
         $leaveName = $this->leaveRequest->leaveType?->leave_name ?? 'leave';
+        $reviewNote = trim((string) ($this->leaveRequest->review_note ?? ''));
+        $message = "Your {$leaveName} request for {$this->leaveRequest->requested_days} day(s) is {$status}.";
+
+        if ($reviewNote !== '') {
+            $message .= " Reason: {$reviewNote}";
+        }
 
         return [
             'title' => "Leave request {$label}",
-            'message' => "Your {$leaveName} request for {$this->leaveRequest->requested_days} day(s) is {$status}.",
+            'message' => $message,
             'status' => $status,
             'leave_request_id' => $this->leaveRequest->id,
             'leave_name' => $leaveName,
+            'review_note' => $reviewNote,
         ];
     }
 }
