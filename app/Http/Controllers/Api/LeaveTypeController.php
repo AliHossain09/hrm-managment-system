@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\LeaveManagementService;
 use App\Models\LeaveType;
 use App\Models\User;
 use App\Services\AuthService;
@@ -45,7 +46,7 @@ class LeaveTypeController extends Controller
         ], 'Leave types loaded.');
     }
 
-    public function store(Request $request, AuthService $authService): JsonResponse
+    public function store(Request $request, AuthService $authService, LeaveManagementService $leaveManagementService): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
@@ -76,6 +77,8 @@ class LeaveTypeController extends Controller
             'leave_days' => $validated['leave_days'],
         ]);
 
+        $leaveManagementService->syncWorkspaceLeaveBalances((int) $user->current_workspace_id);
+
         return $this->successResponse([
             'id' => $leaveType->id,
             'leave_name' => $leaveType->leave_name,
@@ -84,7 +87,7 @@ class LeaveTypeController extends Controller
         ], 'Leave type created successfully.', 201);
     }
 
-    public function update(Request $request, LeaveType $leaveType, AuthService $authService): JsonResponse
+    public function update(Request $request, LeaveType $leaveType, AuthService $authService, LeaveManagementService $leaveManagementService): JsonResponse
     {
         /** @var User $user */
         $user = $request->user();
@@ -116,6 +119,8 @@ class LeaveTypeController extends Controller
             'leave_days' => $validated['leave_days'],
         ]);
 
+        $leaveManagementService->syncWorkspaceLeaveBalances((int) $user->current_workspace_id);
+
         return $this->successResponse([
             'id' => $leaveType->id,
             'leave_name' => $leaveType->leave_name,
@@ -142,4 +147,3 @@ class LeaveTypeController extends Controller
         return $this->successResponse(null, 'Leave type deleted successfully.');
     }
 }
-

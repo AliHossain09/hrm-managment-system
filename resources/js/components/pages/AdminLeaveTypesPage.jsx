@@ -24,8 +24,10 @@ function extractMessage(error) {
 
 export default function AdminLeaveTypesPage({ user, onLogout, headers, showToast }) {
     const [leaveTypes, setLeaveTypes] = useState([]);
+    const [leaveRequests, setLeaveRequests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [reviewingId, setReviewingId] = useState(null);
     const [editingId, setEditingId] = useState(null);
     const [form, setForm] = useState({
         leave_name: '',
@@ -33,8 +35,13 @@ export default function AdminLeaveTypesPage({ user, onLogout, headers, showToast
     });
 
     const loadLeaveTypes = async () => {
-        const { data } = await api.get('/leaves', { headers });
-        setLeaveTypes(data?.data?.leave_types || []);
+        const [{ data: leaveData }, { data: requestData }] = await Promise.all([
+            api.get('/leaves', { headers }),
+            api.get('/admin/leave-requests', { headers }),
+        ]);
+
+        setLeaveTypes(leaveData?.data?.leave_types || []);
+        setLeaveRequests(requestData?.data?.recent_requests || []);
     };
 
     useEffect(() => {
@@ -105,6 +112,20 @@ export default function AdminLeaveTypesPage({ user, onLogout, headers, showToast
             }
         } catch (error) {
             showToast('error', extractMessage(error));
+        }
+    };
+
+    const reviewRequest = async (item, status) => {
+        setReviewingId(item.id);
+
+        try {
+            await api.put(`/admin/leave-requests/${item.id}`, { status }, { headers });
+            await loadLeaveTypes();
+            showToast('success', `Leave request ${status} successfully.`);
+        } catch (error) {
+            showToast('error', extractMessage(error));
+        } finally {
+            setReviewingId(null);
         }
     };
 
@@ -186,6 +207,73 @@ export default function AdminLeaveTypesPage({ user, onLogout, headers, showToast
                                                 <button className="btn-mini btn-mini-delete" type="button" onClick={() => deleteItem(item)}>
                                                     Delete
                                                 </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </section>
+
+            <section className="panel" style={{ marginTop: '1rem' }}>
+                <h3>Leave Request Approval</h3>
+                {loading ? (
+                    <p className="panel-muted">Loading leave requests...</p>
+                ) : (
+                    <div className="event-table-wrap">
+                        <table className="event-table hrm-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Employee</th>
+                                    <th>Leave</th>
+                                    <th>Date Range</th>
+                                    <th>Days</th>
+                                    <th>Status</th>
+                                    <th>Reason</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {leaveRequests.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="8" className="text-muted">No leave request found.</td>
+                                    </tr>
+                                ) : (
+                                    leaveRequests.map((item) => (
+                                        <tr key={item.id}>
+                                            <td>{item.id}</td>
+                                            <td>{item.employee_name || '-'}</td>
+                                            <td>{item.leave_name || '-'}</td>
+                                            <td>{item.from_date} to {item.to_date}</td>
+                                            <td>{item.requested_days}</td>
+                                            <td><span className={`leave-status-pill ${item.status}`}>{item.status}</span></td>
+                                            <td>{item.reason || '-'}</td>
+                                            <td className="event-action-cell">
+                                                {item.status === 'pending' ? (
+                                                    <>
+                                                        <button
+                                                            className="btn-mini btn-mini-edit"
+                                                            type="button"
+                                                            disabled={reviewingId === item.id}
+                                                            onClick={() => reviewRequest(item, 'approved')}
+                                                        >
+                                                            {reviewingId === item.id ? 'Working...' : 'Approve'}
+                                                        </button>
+                                                        <button
+                                                            className="btn-mini btn-mini-delete"
+                                                            type="button"
+                                                            disabled={reviewingId === item.id}
+                                                            onClick={() => reviewRequest(item, 'rejected')}
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-muted">{item.approved_by_name || 'Processed'}</span>
+                                                )}
                                             </td>
                                         </tr>
                                     ))

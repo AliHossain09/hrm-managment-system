@@ -1,10 +1,13 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AdminLeaveRequestController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\EmployeeLeaveController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\HrmCatalogController;
 use App\Http\Controllers\Api\LeaveTypeController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OwnerSaasController;
 use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\SuperAdminSaasController;
@@ -17,6 +20,9 @@ Route::prefix('v1')->group(function (): void {
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/dashboard', [DashboardController::class, 'index']);
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+        Route::post('/notifications/{notificationId}/read', [NotificationController::class, 'markRead']);
 
         Route::get('/events', [EventController::class, 'index']);
         Route::post('/events', [EventController::class, 'store']);
@@ -76,6 +82,13 @@ Route::prefix('v1')->group(function (): void {
             Route::post('/leaves', [LeaveTypeController::class, 'store']);
             Route::put('/leaves/{leaveType}', [LeaveTypeController::class, 'update']);
             Route::delete('/leaves/{leaveType}', [LeaveTypeController::class, 'destroy']);
+            Route::get('/admin/leave-requests', [AdminLeaveRequestController::class, 'index']);
+            Route::put('/admin/leave-requests/{leaveRequest}', [AdminLeaveRequestController::class, 'update']);
+        });
+
+        Route::middleware('role.group:employee')->group(function (): void {
+            Route::get('/employee/leaves', [EmployeeLeaveController::class, 'index']);
+            Route::post('/employee/leaves', [EmployeeLeaveController::class, 'store']);
         });
     });
 });

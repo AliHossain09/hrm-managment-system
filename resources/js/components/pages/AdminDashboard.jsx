@@ -2,6 +2,7 @@ import axios from 'axios';
 import React from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
+import { Link } from 'react-router-dom';
 import AppShell from '../layout/AppShell.jsx';
 
 const api = axios.create({
@@ -18,21 +19,45 @@ function addOneDay(yyyyMmDd) {
 export default function AdminDashboard({ user, onLogout, headers }) {
     const [events, setEvents] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
+    const [leavePortal, setLeavePortal] = React.useState({
+        pending_count: 0,
+        notifications: [],
+        recent_requests: [],
+    });
+    const isMasterAdmin = ['master_admin', 'master admin'].includes(String(user?.account_level || '').toLowerCase());
 
     React.useEffect(() => {
         const loadEvents = async () => {
             try {
-                const { data } = await api.get('/events', { headers });
-                setEvents(data?.data?.events || []);
+                const requests = [api.get('/events', { headers })];
+
+                if (isMasterAdmin) {
+                    requests.push(api.get('/admin/leave-requests', { headers }));
+                }
+
+                const responses = await Promise.all(requests);
+                setEvents(responses[0]?.data?.data?.events || []);
+                if (isMasterAdmin) {
+                    setLeavePortal({
+                        pending_count: responses[1]?.data?.data?.pending_count || 0,
+                        notifications: responses[1]?.data?.data?.notifications || [],
+                        recent_requests: responses[1]?.data?.data?.recent_requests || [],
+                    });
+                }
             } catch {
                 setEvents([]);
+                setLeavePortal({
+                    pending_count: 0,
+                    notifications: [],
+                    recent_requests: [],
+                });
             } finally {
                 setLoading(false);
             }
         };
 
         loadEvents();
-    }, [headers]);
+    }, [headers, isMasterAdmin]);
 
     const calendarEvents = React.useMemo(() => {
         return events.map((item) => ({
@@ -48,9 +73,15 @@ export default function AdminDashboard({ user, onLogout, headers }) {
         <AppShell user={user} onLogout={onLogout} admin>
             <h1 className="dashboard-title">Dashboard (Admin)</h1>
             <section className="notice-row">
-                <div className="badge-orange">Notice Board</div>
-                <div className="notice-text">Welcome back {user?.name}</div>
-                <button className="btn-primary small">View All</button>
+                <div className="badge-orange">Notify</div>
+                <div className="notice-text">
+                    {isMasterAdmin
+                        ? (leavePortal.notifications[0]?.message || `You have ${leavePortal.pending_count} pending leave request(s).`)
+                        : `Welcome back ${user?.name}`}
+                </div>
+                <Link to={isMasterAdmin ? '/admin/leaves' : '/events'} className="btn-primary small">
+                    {isMasterAdmin ? 'Review Leaves' : 'View All'}
+                </Link>
             </section>
             <section className="grid-two">
                 <article className="panel">
@@ -78,8 +109,16 @@ export default function AdminDashboard({ user, onLogout, headers }) {
                     </div>
                     <div>
                         <h3>Apply For Leave</h3>
-                        <p className="panel-muted">Available Casual Leave: 9</p>
-                        <p className="panel-muted">Available Sick Leave: 14</p>
+                        {isMasterAdmin ? (
+                            <>
+                                <p className="panel-muted">Pending Leave Requests: {leavePortal.pending_count}</p>
+                                <p className="panel-muted">
+                                    Latest Status: {leavePortal.recent_requests[0]?.status || 'No request yet'}
+                                </p>
+                            </>
+                        ) : (
+                            <p className="panel-muted">Leave review is available for master admin.</p>
+                        )}
                     </div>
                 </article>
             </section>

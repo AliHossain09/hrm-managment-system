@@ -2,6 +2,7 @@ import axios from 'axios';
 import React from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
+import { Link } from 'react-router-dom';
 import AppShell from '../layout/AppShell.jsx';
 
 const api = axios.create({
@@ -18,14 +19,32 @@ function addOneDay(yyyyMmDd) {
 export default function EmployeeDashboard({ user, onLogout, headers }) {
     const [events, setEvents] = React.useState([]);
     const [loading, setLoading] = React.useState(true);
+    const [leavePortal, setLeavePortal] = React.useState({
+        notifications: [],
+        unread_notifications_count: 0,
+        leave_types: [],
+    });
 
     React.useEffect(() => {
         const loadEvents = async () => {
             try {
-                const { data } = await api.get('/events', { headers });
-                setEvents(data?.data?.events || []);
+                const [{ data: eventData }, { data: leaveData }] = await Promise.all([
+                    api.get('/events', { headers }),
+                    api.get('/employee/leaves', { headers }),
+                ]);
+                setEvents(eventData?.data?.events || []);
+                setLeavePortal({
+                    notifications: leaveData?.data?.notifications || [],
+                    unread_notifications_count: leaveData?.data?.unread_notifications_count || 0,
+                    leave_types: leaveData?.data?.leave_types || [],
+                });
             } catch {
                 setEvents([]);
+                setLeavePortal({
+                    notifications: [],
+                    unread_notifications_count: 0,
+                    leave_types: [],
+                });
             } finally {
                 setLoading(false);
             }
@@ -48,9 +67,11 @@ export default function EmployeeDashboard({ user, onLogout, headers }) {
         <AppShell user={user} onLogout={onLogout}>
             <h1 className="dashboard-title">Dashboard (Employee)</h1>
             <section className="notice-row">
-                <div className="badge-orange">Notice Board</div>
-                <div className="notice-text">Hello {user?.name}</div>
-                <button className="btn-primary small">View All</button>
+                <div className="badge-orange">Notify</div>
+                <div className="notice-text">
+                    {leavePortal.notifications[0]?.message || `Hello ${user?.name}. You have ${leavePortal.unread_notifications_count} unread notification(s).`}
+                </div>
+                <Link to="/employee/leaves" className="btn-primary small">View Leave</Link>
             </section>
             <section className="grid-two">
                 <article className="panel">
@@ -78,8 +99,15 @@ export default function EmployeeDashboard({ user, onLogout, headers }) {
                     </div>
                     <div>
                         <h3>Apply For Leave</h3>
-                        <p className="panel-muted">Available Casual Leave: 9</p>
-                        <p className="panel-muted">Available Sick Leave: 14</p>
+                        {leavePortal.leave_types.length === 0 ? (
+                            <p className="panel-muted">No leave type assigned yet.</p>
+                        ) : (
+                            leavePortal.leave_types.slice(0, 3).map((item) => (
+                                <p key={item.leave_type_id} className="panel-muted">
+                                    {item.leave_name}: {item.remaining_days} remaining
+                                </p>
+                            ))
+                        )}
                     </div>
                 </article>
             </section>

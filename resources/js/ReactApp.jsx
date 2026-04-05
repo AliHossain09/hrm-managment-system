@@ -12,6 +12,7 @@ import AdminHrmUserRolesPage from './components/pages/AdminHrmUserRolesPage.jsx'
 import AdminHrmUserTypesPage from './components/pages/AdminHrmUserTypesPage.jsx';
 import AdminLeaveTypesPage from './components/pages/AdminLeaveTypesPage.jsx';
 import EmployeeDashboard from './components/pages/EmployeeDashboard.jsx';
+import EmployeeLeavesPage from './components/pages/EmployeeLeavesPage.jsx';
 import EventsPage from './components/pages/EventsPage.jsx';
 import LoginPage from './components/pages/LoginPage.jsx';
 import OwnerDashboardPage from './components/pages/OwnerDashboardPage.jsx';
@@ -710,7 +711,8 @@ export default function ReactApp() {
                             <AdminEmployeeAttendancePage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} />
                         </ProtectedRoute>
                     }
-                />                <Route
+                />
+                <Route
                     path="/admin/hrm/user-roles"
                     element={
                         <ProtectedRoute user={user} role="admin">
@@ -773,6 +775,15 @@ export default function ReactApp() {
                 />
 
                 <Route
+                    path="/employee/leaves"
+                    element={
+                        <ProtectedRoute user={user} role="employee">
+                            <EmployeeLeavesPage user={user} onLogout={logout} headers={authHeaders} showToast={showToast} />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
                     path="/events"
                     element={
                         <ProtectedAny user={user}>
@@ -787,6 +798,7 @@ export default function ReactApp() {
         </>
     );
 }
+
 
 
 

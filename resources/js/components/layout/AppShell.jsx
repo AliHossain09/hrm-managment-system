@@ -157,9 +157,9 @@ function SideNavEmployee() {
             <a className="side-item" href="#">
                 Pay Slip
             </a>
-            <a className="side-item" href="#">
+            <NavLink to="/employee/leaves" className={({ isActive }) => `side-item ${isActive ? 'active' : ''}`}>
                 Leave List
-            </a>
+            </NavLink>
             <a className="side-item" href="#">
                 Attendance
             </a>
