@@ -1,5 +1,5 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 
 function SideNavOwner() {
     return (
@@ -37,19 +37,47 @@ function SideNavSuperAdmin() {
 }
 
 function SideNavAdmin({ isMasterAdmin }) {
+    const location = useLocation();
+    const isStaffRoute = location.pathname.startsWith('/admin/staff');
+    const [isStaffOpen, setIsStaffOpen] = useState(isStaffRoute);
+
+    useEffect(() => {
+        if (isStaffRoute) {
+            setIsStaffOpen(true);
+        }
+    }, [isStaffRoute]);
+
     return (
         <nav>
             <NavLink to="/admin/dashboard" className={({ isActive }) => `side-item ${isActive ? 'active' : ''}`}>
                 Dashboard
             </NavLink>
 
-            <div className="side-section-title">Staff</div>
-            <NavLink to="/admin/staff/users" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
-                User
-            </NavLink>
-            <NavLink to="/admin/staff/roles" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
-                Role & Permission
-            </NavLink>
+            <div className={`side-accordion ${isStaffOpen ? 'open' : ''}`}>
+                <button
+                    type="button"
+                    className={`side-accordion-trigger ${isStaffRoute ? 'active' : ''}`}
+                    onClick={() => setIsStaffOpen((current) => !current)}
+                    aria-expanded={isStaffOpen}
+                >
+                    <span className="side-accordion-label">Staff</span>
+                    <span className={`side-accordion-icon ${isStaffOpen ? 'open' : ''}`} aria-hidden="true">
+                        <svg viewBox="0 0 20 20" fill="none">
+                            <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                    </span>
+                </button>
+                {isStaffOpen ? (
+                    <div className="side-accordion-panel">
+                        <NavLink to="/admin/staff/users" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
+                            User
+                        </NavLink>
+                        <NavLink to="/admin/staff/roles" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
+                            Role & Permission
+                        </NavLink>
+                    </div>
+                ) : null}
+            </div>
 
             {isMasterAdmin ? (
                 <>
