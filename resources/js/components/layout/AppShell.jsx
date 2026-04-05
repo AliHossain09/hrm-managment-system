@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
-function NotificationButton({ notifications = [], unreadCount = 0, onMarkAllRead, onMarkRead }) {
+function NotificationButton({ notifications = [], unreadCount = 0, onMarkAllRead, onOpenNotification }) {
     const [open, setOpen] = useState(false);
 
     return (
@@ -35,7 +35,12 @@ function NotificationButton({ notifications = [], unreadCount = 0, onMarkAllRead
                                     key={item.id}
                                     type="button"
                                     className={`topbar-notify-item ${item.is_read ? 'read' : 'unread'}`}
-                                    onClick={() => onMarkRead ? onMarkRead(item.id) : null}
+                                    onClick={async () => {
+                                        if (onOpenNotification) {
+                                            await onOpenNotification(item);
+                                        }
+                                        setOpen(false);
+                                    }}
                                 >
                                     <strong>{item.title}</strong>
                                     <p>{item.message}</p>
@@ -229,11 +234,28 @@ export default function AppShell({
     onMarkAllNotificationsRead = null,
     onMarkNotificationRead = null,
 }) {
+    const navigate = useNavigate();
     const accountLevel = String(user?.account_level || '').toLowerCase();
     const isSuperAdmin = accountLevel === 'super_admin' || accountLevel === 'super admin';
     const isMasterAdmin = accountLevel === 'master_admin' || accountLevel === 'master admin';
+    const isEmployeeShell = !owner && !isSuperAdmin && !admin;
     const brandName = owner ? 'Owner' : (isSuperAdmin ? 'Super Admin' : (user?.workspace?.name || 'Miutx'));
     const logoUrl = (!owner && !isSuperAdmin) ? user?.workspace?.logo_url : null;
+
+    const openNotification = async (item) => {
+        if (onMarkNotificationRead) {
+            await onMarkNotificationRead(item.id);
+        }
+
+        if (admin) {
+            navigate('/admin/leaves');
+            return;
+        }
+
+        if (isEmployeeShell) {
+            navigate('/employee/leaves');
+        }
+    };
 
     return (
         <div className="app-shell">
@@ -252,7 +274,7 @@ export default function AppShell({
                             notifications={notifications}
                             unreadCount={unreadNotificationsCount}
                             onMarkAllRead={onMarkAllNotificationsRead || (() => {})}
-                            onMarkRead={onMarkNotificationRead || (() => {})}
+                            onOpenNotification={openNotification}
                         />
                         <button className="btn-ghost" type="button" onClick={onLogout}>
                             Logout
