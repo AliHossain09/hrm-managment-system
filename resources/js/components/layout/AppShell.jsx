@@ -39,13 +39,21 @@ function SideNavSuperAdmin() {
 function SideNavAdmin({ isMasterAdmin }) {
     const location = useLocation();
     const isStaffRoute = location.pathname.startsWith('/admin/staff');
+    const isHrmRoute = location.pathname.startsWith('/admin/hrm') || location.pathname.startsWith('/admin/leaves') || location.pathname.startsWith('/events');
     const [isStaffOpen, setIsStaffOpen] = useState(isStaffRoute);
+    const [isHrmOpen, setIsHrmOpen] = useState(isHrmRoute);
 
     useEffect(() => {
         if (isStaffRoute) {
             setIsStaffOpen(true);
         }
     }, [isStaffRoute]);
+
+    useEffect(() => {
+        if (isHrmRoute) {
+            setIsHrmOpen(true);
+        }
+    }, [isHrmRoute]);
 
     return (
         <nav>
@@ -81,34 +89,52 @@ function SideNavAdmin({ isMasterAdmin }) {
 
             {isMasterAdmin ? (
                 <>
-                    <div className="side-section-title">HRM</div>
-                    <NavLink to="/admin/hrm/employees" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
-                        Employee
-                    </NavLink>
-                    <NavLink to="/admin/hrm/employee-attendance" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
-                        Employee Attendance
-                    </NavLink>
-                    <NavLink to="/admin/hrm/user-roles" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
-                        User Role
-                    </NavLink>
-                    <NavLink to="/admin/hrm/departments" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
-                        Department
-                    </NavLink>
-                    <NavLink to="/admin/hrm/designations" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
-                        Designation
-                    </NavLink>
-                    <NavLink to="/admin/hrm/user-types" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
-                        User Type
-                    </NavLink>
-                    <NavLink to="/admin/hrm/part-time-hours" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
-                        Part Time Hours
-                    </NavLink>
-                    <NavLink to="/admin/leaves" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
-                        Leave Create & Index
-                    </NavLink>
-                    <NavLink to="/events" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
-                        Event Calendar
-                    </NavLink>
+                    <div className={`side-accordion ${isHrmOpen ? 'open' : ''}`}>
+                        <button
+                            type="button"
+                            className={`side-accordion-trigger ${isHrmRoute ? 'active' : ''}`}
+                            onClick={() => setIsHrmOpen((current) => !current)}
+                            aria-expanded={isHrmOpen}
+                        >
+                            <span className="side-accordion-label">HRM</span>
+                            <span className={`side-accordion-icon ${isHrmOpen ? 'open' : ''}`} aria-hidden="true">
+                                <svg viewBox="0 0 20 20" fill="none">
+                                    <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </span>
+                        </button>
+                        {isHrmOpen ? (
+                            <div className="side-accordion-panel">
+                                <NavLink to="/admin/hrm/employees" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
+                                    Employee
+                                </NavLink>
+                                <NavLink to="/admin/hrm/employee-attendance" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
+                                    Employee Attendance
+                                </NavLink>
+                                <NavLink to="/admin/hrm/user-roles" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
+                                    User Role
+                                </NavLink>
+                                <NavLink to="/admin/hrm/departments" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
+                                    Department
+                                </NavLink>
+                                <NavLink to="/admin/hrm/designations" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
+                                    Designation
+                                </NavLink>
+                                <NavLink to="/admin/hrm/user-types" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
+                                    User Type
+                                </NavLink>
+                                <NavLink to="/admin/hrm/part-time-hours" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
+                                    Part Time Hours
+                                </NavLink>
+                                <NavLink to="/admin/leaves" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
+                                    Leave Create & Index
+                                </NavLink>
+                                <NavLink to="/events" className={({ isActive }) => `side-item side-sub ${isActive ? 'active' : ''}`}>
+                                    Event Calendar
+                                </NavLink>
+                            </div>
+                        ) : null}
+                    </div>
                 </>
             ) : null}
 
